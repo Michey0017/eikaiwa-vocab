@@ -3583,20 +3583,30 @@
   }
   var __restoreBtn = document.getElementById('restore-btn');
   if (__restoreBtn) __restoreBtn.addEventListener('click', restoreFromJSON);
-  // ============ ☁️ クラウド保存（GAS＋スプレッドシート / こづかいノート方式） ============
+  // ============ ☁️ クラウド保存（GAS＋スプレッドシート / こづかいノート方式）本格版 ============
+  // 2台・3台運用で事故らないための3本柱：
+  //  (1) 起動時に自動でクラウドから最新を読込
+  //  (2) 順番厳守：読込が終わってから自動保存(アップ)を有効化（逆だと古いデータで上書き事故）
+  //  (3) lastModified（最終更新時刻）で新しい方を優先（古い端末が新しいデータを上書きしない）
   var CLOUD_URL = 'https://script.google.com/macros/s/AKfycbxrAocLUgwYqAXe_QkI4KU276Skr2x8UQjk0CSikvkbduwfGzKeX48RewoNwmqUfKKycw/exec';
   var cloudSaveTimer = null;
   var cloudSaving = false;
- 
+  var cloudReady = false; // ★(2)初回読込が終わるまで自動保存を止めるフラグ
+
   // 全単語をクラウド（スプレッドシート）へ保存
   // ※CORS回避のため no-cors で投げる。返事は受け取れないが、GAS側は確実に保存する。
+  // ※(3)保存時に lastModified も一緒に送る。GAS側がこれを記録する。
   function cloudSave(opts) {
     opts = opts || {};
     if (!CLOUD_URL) return;
     if (cloudSaving) return;
     cloudSaving = true;
     if (opts.manual) toast('☁️ クラウドに送信中...');
-    var payload = { words: state.words };
+    // このデータの最終更新時刻。無ければ今の時刻を採用して記録しておく。
+    if (!Number.isFinite(state.lastModified) || state.lastModified <= 0) {
+      state.lastModified = Date.now();
+    }
+    var payload = { words: state.words, lastModified: state.lastModified };
     fetch(CLOUD_URL, {
       method: 'POST',
       mode: 'no-cors',
@@ -3613,17 +3623,20 @@
       console.error('cloudSave error', err);
     });
   }
- 
+
   // 変更があったら数秒後に自動でクラウド保存（押し忘れ防止）
+  // ※(2)初回読込が終わる前は何もしない。
   function cloudSaveDebounced() {
     if (!CLOUD_URL) return;
+    if (!cloudReady) return; // ★読込完了前は自動保存しない
     if (cloudSaveTimer) clearTimeout(cloudSaveTimer);
     cloudSaveTimer = setTimeout(function(){ cloudSave({ manual: false }); }, 2500);
   }
- 
+
   // クラウド（スプレッドシート）から読み込んでこの端末に反映
   // ※読み込みはJSONP方式（scriptタグ）でCORSを回避する。
-  var __cloudLoadCb = null;
+  // opts.manual : 手動ボタン（確認ダイアログを出す・常に上書き）
+  // opts.auto   : 起動時の自動読込（(3)新しい方優先で、確認なし）
   function cloudLoad(opts) {
     opts = opts || {};
     if (!CLOUD_URL) return;
@@ -3636,6 +3649,8 @@
       done = true;
       cleanup();
       if (opts.manual) toast('クラウド読込がタイムアウトしました');
+      // ★自動読込が失敗しても、保存だけは有効化する（オフラインでも使えるように）
+      if (opts.auto) enableCloudSaveAfterLoad();
     }, 15000);
     function cleanup() {
       try { delete window[cbName]; } catch(e) { window[cbName] = undefined; }
@@ -3646,36 +3661,62 @@
       if (done) return;
       done = true;
       cleanup();
-      if (res && res.ok && Array.isArray(res.words)) {
-        if (res.words.length === 0) {
-          if (opts.manual) toast('クラウドにはまだデータがありません');
-          return;
+      try {
+        if (res && res.ok && Array.isArray(res.words)) {
+          var cloudTime = Number(res.lastModified) || 0; // ★クラウド側の最終更新時刻
+          var localTime = Number.isFinite(state.lastModified) ? state.lastModified : 0;
+
+          // --- (3) 新しい方を優先する判定 ---
+          if (opts.auto) {
+            // クラウドが空 → 何もしない（この端末のデータを保持）
+            if (res.words.length === 0) {
+              enableCloudSaveAfterLoad();
+              return;
+            }
+            // この端末の方が新しい（または同じ）→ クラウドを取り込まない
+            // （直後に自動保存が走り、この端末の新しいデータがクラウドへ上がる）
+            if (localTime > cloudTime) {
+              enableCloudSaveAfterLoad();
+              return;
+            }
+            // ここまで来たら「クラウドの方が新しい」→ 取り込む
+          } else if (opts.manual) {
+            if (res.words.length === 0) {
+              toast('クラウドにはまだデータがありません');
+              return;
+            }
+            if (!confirm('クラウドの ' + res.words.length + ' 語を、この端末に読み込みます。\n現在この端末にある ' + state.words.length + ' 語は置き換わります。よろしいですか?')) return;
+          }
+
+          var now = Date.now();
+          var DUE = [10*60*1000, 24*60*60*1000, 7*24*60*60*1000];
+          state.words = res.words.map(function(w, i){
+            var stage = Number.isFinite(w.stage) ? w.stage : 0;
+            var nextDue = Number.isFinite(w.nextDue) && w.nextDue > 0 ? w.nextDue : (stage >= 3 ? now : now + (DUE[stage] || DUE[0]));
+            return {
+              id: w.id || ('w-' + now + '-' + i + '-' + Math.random().toString(36).slice(2,7)),
+              term: w.term || '', pos: w.pos || '', meaning: w.meaning || '', example: w.example || '',
+              source: w.source || 'chat',
+              addedAt: Number.isFinite(w.addedAt) && w.addedAt > 0 ? w.addedAt : (now - (res.words.length - i) * 1000),
+              stage: stage, nextDue: nextDue,
+              history: Array.isArray(w.history) ? w.history : [],
+              inBox: w.inBox === true, boxStreak: Number.isFinite(w.boxStreak) ? w.boxStreak : 0,
+              status: (w.status === 'known' || w.status === 'unsure' || w.status === 'unset') ? w.status : 'unset'
+            };
+          }).filter(function(w){ return w.term; });
+
+          // 取り込んだデータの時刻を、クラウドの時刻に合わせる（これで以後の新旧判定が正しくなる）
+          state.lastModified = cloudTime || now;
+          __origSave(); // ★保存はするが、ここで自動アップは走らせない（cloudReadyはまだfalse or 制御下）
+          updateBadges();
+          if (typeof renderLibrary === 'function') renderLibrary();
+          if (opts.manual) toast('☁️ クラウドから ' + state.words.length + ' 語を読込みました');
+        } else {
+          if (opts.manual) toast('クラウド読込に失敗しました');
         }
-        if (opts.manual) {
-          if (!confirm('クラウドの ' + res.words.length + ' 語を、この端末に読み込みます。\n現在この端末にある ' + state.words.length + ' 語は置き換わります。よろしいですか?')) return;
-        }
-        var now = Date.now();
-        var DUE = [10*60*1000, 24*60*60*1000, 7*24*60*60*1000];
-        state.words = res.words.map(function(w, i){
-          var stage = Number.isFinite(w.stage) ? w.stage : 0;
-          var nextDue = Number.isFinite(w.nextDue) && w.nextDue > 0 ? w.nextDue : (stage >= 3 ? now : now + (DUE[stage] || DUE[0]));
-          return {
-            id: w.id || ('w-' + now + '-' + i + '-' + Math.random().toString(36).slice(2,7)),
-            term: w.term || '', pos: w.pos || '', meaning: w.meaning || '', example: w.example || '',
-            source: w.source || 'chat',
-            addedAt: Number.isFinite(w.addedAt) && w.addedAt > 0 ? w.addedAt : (now - (res.words.length - i) * 1000),
-            stage: stage, nextDue: nextDue,
-            history: Array.isArray(w.history) ? w.history : [],
-            inBox: w.inBox === true, boxStreak: Number.isFinite(w.boxStreak) ? w.boxStreak : 0,
-            status: (w.status === 'known' || w.status === 'unsure' || w.status === 'unset') ? w.status : 'unset'
-          };
-        }).filter(function(w){ return w.term; });
-        save();
-        updateBadges();
-        if (typeof renderLibrary === 'function') renderLibrary();
-        if (opts.manual) toast('☁️ クラウドから ' + state.words.length + ' 語を読込みました');
-      } else {
-        if (opts.manual) toast('クラウド読込に失敗しました');
+      } finally {
+        // ★(2)自動読込のときは、ここまで終わってから初めて自動保存を有効化する
+        if (opts.auto) enableCloudSaveAfterLoad();
       }
     };
     script.onerror = function(){
@@ -3683,20 +3724,39 @@
       done = true;
       cleanup();
       if (opts.manual) toast('クラウド読込に失敗（通信エラー）');
+      if (opts.auto) enableCloudSaveAfterLoad();
     };
     script.src = CLOUD_URL + '?callback=' + cbName + '&t=' + Date.now();
     document.body.appendChild(script);
   }
- 
+
+  // ★(2)初回読込の完了後に呼ぶ：これ以降だけ自動保存(アップ)を許可する
+  function enableCloudSaveAfterLoad() {
+    cloudReady = true;
+  }
+
   // 手動ボタンに紐付け
   var __cloudSaveBtn = document.getElementById('cloud-save-btn');
-  if (__cloudSaveBtn) __cloudSaveBtn.addEventListener('click', function(){ cloudSave({ manual: true }); });
+  if (__cloudSaveBtn) __cloudSaveBtn.addEventListener('click', function(){
+    // 手動保存は「今この瞬間が最新」とみなして時刻を更新してから送る
+    state.lastModified = Date.now();
+    cloudSave({ manual: true });
+  });
   var __cloudLoadBtn = document.getElementById('cloud-load-btn');
   if (__cloudLoadBtn) __cloudLoadBtn.addEventListener('click', function(){ cloudLoad({ manual: true }); });
- 
-  // save() が呼ばれるたびに自動でクラウドへ（元のsaveを包む）
+
+  // save() が呼ばれるたびに、データの更新時刻を進めて自動でクラウドへ（元のsaveを包む）
+  // ※lastModifiedをここで更新することで「最後に変更した端末が一番新しい」を表現する
   var __origSave = save;
-  save = function() { __origSave(); cloudSaveDebounced(); };
+  save = function() {
+    state.lastModified = Date.now(); // ★この端末で変更が起きた時刻を記録
+    __origSave();
+    cloudSaveDebounced();
+  };
+
+  // ★(1)起動時：まずクラウドから自動読込 → 終わってから自動保存が有効になる
+  cloudLoad({ auto: true });
+
   updateBadges();
   setInterval(updateBadges, 60000);
 })();

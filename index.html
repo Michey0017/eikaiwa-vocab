@@ -1377,6 +1377,8 @@
         <button class="vt-btn secondary" id="export-light-btn" style="border-color:#7c4d20; color:#7c4d20">📦 軽量JSON出力(次のClaude用)</button>
         <button class="vt-btn secondary" id="export-csv-btn">📊 CSV出力(Excel用)</button>
         <button class="vt-btn secondary" id="restore-btn" style="border-color:var(--leaf); color:var(--leaf)">📥 進捗ごと復元(引っ越し用)</button>
+        <button class="vt-btn secondary" id="cloud-save-btn" style="border-color:var(--leaf); color:var(--leaf)">☁️ 今すぐクラウド保存</button>
+<button class="vt-btn secondary" id="cloud-load-btn" style="border-color:var(--leaf); color:var(--leaf)">☁️ クラウドから読込</button>
         <button class="vt-btn secondary" id="reset-btn" style="color:var(--accent); border-color:var(--accent)">全データリセット</button>
       </div>
     </div>
@@ -3581,6 +3583,102 @@
   }
   var __restoreBtn = document.getElementById('restore-btn');
   if (__restoreBtn) __restoreBtn.addEventListener('click', restoreFromJSON);
+   // ============ ☁️ クラウド保存（GAS＋スプレッドシート / こづかいノート方式） ============
+  var CLOUD_URL = 'https://script.google.com/macros/s/AKfycbxrAocLUgwYqAXe_QkI4KU276Skr2x8UQjk0CSikvkbduwfGzKeX48RewoNwmqUfKKycw/exec';
+  var cloudSaveTimer = null;
+  var cloudSaving = false;
+ 
+  // 全単語をクラウド（スプレッドシート）へ保存
+  function cloudSave(opts) {
+    opts = opts || {};
+    if (!CLOUD_URL) return;
+    if (cloudSaving) return;
+    cloudSaving = true;
+    if (opts.manual) toast('☁️ クラウドに保存中...');
+    var payload = { words: state.words };
+    fetch(CLOUD_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(res){
+      cloudSaving = false;
+      if (res && res.ok) {
+        if (opts.manual) toast('☁️ クラウド保存完了（' + res.saved + '語）');
+      } else {
+        toast('クラウド保存に失敗しました');
+      }
+    })
+    .catch(function(err){
+      cloudSaving = false;
+      if (opts.manual) toast('クラウド保存に失敗（通信エラー）');
+      console.error('cloudSave error', err);
+    });
+  }
+ 
+  // 変更があったら数秒後に自動でクラウド保存（押し忘れ防止）
+  function cloudSaveDebounced() {
+    if (!CLOUD_URL) return;
+    if (cloudSaveTimer) clearTimeout(cloudSaveTimer);
+    cloudSaveTimer = setTimeout(function(){ cloudSave({ manual: false }); }, 2500);
+  }
+ 
+  // クラウド（スプレッドシート）から読み込んでこの端末に反映
+  function cloudLoad(opts) {
+    opts = opts || {};
+    if (!CLOUD_URL) return;
+    if (opts.manual) toast('☁️ クラウドから読込中...');
+    fetch(CLOUD_URL, { method: 'GET' })
+    .then(function(r){ return r.json(); })
+    .then(function(res){
+      if (res && res.ok && Array.isArray(res.words)) {
+        if (res.words.length === 0) {
+          if (opts.manual) toast('クラウドにはまだデータがありません');
+          return;
+        }
+        if (opts.manual) {
+          if (!confirm('クラウドの ' + res.words.length + ' 語を、この端末に読み込みます。\n現在この端末にある ' + state.words.length + ' 語は置き換わります。よろしいですか?')) return;
+        }
+        var now = Date.now();
+        var DUE = [10*60*1000, 24*60*60*1000, 7*24*60*60*1000];
+        state.words = res.words.map(function(w, i){
+          var stage = Number.isFinite(w.stage) ? w.stage : 0;
+          var nextDue = Number.isFinite(w.nextDue) && w.nextDue > 0 ? w.nextDue : (stage >= 3 ? now : now + (DUE[stage] || DUE[0]));
+          return {
+            id: w.id || ('w-' + now + '-' + i + '-' + Math.random().toString(36).slice(2,7)),
+            term: w.term || '', pos: w.pos || '', meaning: w.meaning || '', example: w.example || '',
+            source: w.source || 'chat',
+            addedAt: Number.isFinite(w.addedAt) && w.addedAt > 0 ? w.addedAt : (now - (res.words.length - i) * 1000),
+            stage: stage, nextDue: nextDue,
+            history: Array.isArray(w.history) ? w.history : [],
+            inBox: w.inBox === true, boxStreak: Number.isFinite(w.boxStreak) ? w.boxStreak : 0,
+            status: (w.status === 'known' || w.status === 'unsure' || w.status === 'unset') ? w.status : 'unset'
+          };
+        }).filter(function(w){ return w.term; });
+        save();
+        updateBadges();
+        if (typeof renderLibrary === 'function') renderLibrary();
+        if (opts.manual) toast('☁️ クラウドから ' + state.words.length + ' 語を読込みました');
+      } else {
+        if (opts.manual) toast('クラウド読込に失敗しました');
+      }
+    })
+    .catch(function(err){
+      if (opts.manual) toast('クラウド読込に失敗（通信エラー）');
+      console.error('cloudLoad error', err);
+    });
+  }
+ 
+  // 手動ボタンに紐付け
+  var __cloudSaveBtn = document.getElementById('cloud-save-btn');
+  if (__cloudSaveBtn) __cloudSaveBtn.addEventListener('click', function(){ cloudSave({ manual: true }); });
+  var __cloudLoadBtn = document.getElementById('cloud-load-btn');
+  if (__cloudLoadBtn) __cloudLoadBtn.addEventListener('click', function(){ cloudLoad({ manual: true }); });
+ 
+  // save() が呼ばれるたびに自動でクラウドへ（元のsaveを包む）
+  var __origSave = save;
+  save = function() { __origSave(); cloudSaveDebounced(); };
   updateBadges();
   setInterval(updateBadges, 60000);
 })();

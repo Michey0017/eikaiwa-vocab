@@ -1376,6 +1376,7 @@
         <button class="vt-btn secondary" id="export-btn">エクスポート(バックアップ)</button>
         <button class="vt-btn secondary" id="export-light-btn" style="border-color:#7c4d20; color:#7c4d20">📦 軽量JSON出力(次のClaude用)</button>
         <button class="vt-btn secondary" id="export-csv-btn">📊 CSV出力(Excel用)</button>
+        <button class="vt-btn secondary" id="restore-btn" style="border-color:var(--leaf); color:var(--leaf)">📥 進捗ごと復元(引っ越し用)</button>
         <button class="vt-btn secondary" id="reset-btn" style="color:var(--accent); border-color:var(--accent)">全データリセット</button>
       </div>
     </div>
@@ -3516,7 +3517,70 @@
     }
     return a;
   }
-
+ // ============ 📥 進捗ごと復元（引っ越し用） ============
+  // 軽量JSON {"words":[...]} もフルバックアップ {"words":[...],...} も両対応。
+  // status / stage / inBox を保ったまま、不足項目を自動補完して localStorage に書き込む。
+  function restoreFromJSON() {
+    const raw = prompt(
+      '引っ越し用の復元です。\n\n' +
+      '旧アプリで出した「軽量JSON(📦ボタン)」または「バックアップ(エクスポート)」の中身を、ここに貼り付けてください。\n\n' +
+      '※現在この端末にある単語は、貼り付けたデータで置き換わります。'
+    );
+    if (raw === null) return; // キャンセル
+    let text = String(raw).replace(/```json|```/g, '').trim();
+    const start = text.indexOf('{');
+    const end = text.lastIndexOf('}');
+    if (start >= 0 && end > start) text = text.slice(start, end + 1);
+ 
+    let parsed;
+    try { parsed = JSON.parse(text); }
+    catch (e) { alert('JSONの形式が正しくありません。\n\nエラー: ' + e.message); return; }
+ 
+    const incoming = Array.isArray(parsed.words) ? parsed.words : null;
+    if (!incoming || incoming.length === 0) {
+      alert('words が見つかりません。軽量JSON(📦)かバックアップを貼り付けてください。');
+      return;
+    }
+ 
+    if (state.words && state.words.length > 0) {
+      if (!confirm('現在この端末にある ' + state.words.length + ' 単語を、貼り付けた ' + incoming.length + ' 単語で置き換えます。よろしいですか?')) return;
+    }
+ 
+    const now = Date.now();
+    const DUE = [10*60*1000, 24*60*60*1000, 7*24*60*60*1000];
+    const restored = incoming.map((w, i) => {
+      const stage = Number.isFinite(w.stage) ? w.stage : 0;
+      // stageに応じた次回復習日を補完（フルバックアップにnextDueがあればそれを優先）
+      let nextDue = w.nextDue;
+      if (!Number.isFinite(nextDue)) {
+        nextDue = stage >= 3 ? now : now + (DUE[stage] || DUE[0]);
+      }
+      return {
+        id: w.id || ('w-' + now + '-' + i + '-' + Math.random().toString(36).slice(2, 7)),
+        term: w.term || '',
+        pos: w.pos || '',
+        meaning: w.meaning || '',
+        example: w.example || '',
+        source: w.source || 'chat',
+        addedAt: Number.isFinite(w.addedAt) ? w.addedAt : (now - (incoming.length - i) * 1000),
+        stage: stage,
+        nextDue: nextDue,
+        history: Array.isArray(w.history) ? w.history : [],
+        inBox: w.inBox === true,
+        boxStreak: Number.isFinite(w.boxStreak) ? w.boxStreak : 0,
+        status: (w.status === 'known' || w.status === 'unsure' || w.status === 'unset') ? w.status : 'unset'
+      };
+    }).filter(w => w.term);
+ 
+    state.words = restored;
+    save();
+    updateBadges();
+    alert(restored.length + ' 単語を進捗ごと復元しました!\n単語帳・グループ・進捗を確認してください。');
+    // 単語帳を再描画
+    if (typeof renderLibrary === 'function') renderLibrary();
+  }
+  var __restoreBtn = document.getElementById('restore-btn');
+  if (__restoreBtn) __restoreBtn.addEventListener('click', restoreFromJSON);
   updateBadges();
   setInterval(updateBadges, 60000);
 })();

@@ -1,0 +1,3523 @@
+<!-- Vocab Atelier v5 - 音声読み上げ機能追加版 -->
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400&family=Inter+Tight:wght@400;500;600;700&display=swap');
+
+  :root {
+    --paper: #faf6f0;
+    --paper-2: #f1ead9;
+    --ink: #1a1611;
+    --ink-soft: #4a3f30;
+    --ink-mute: #8a7d68;
+    --accent: #b54f1d;
+    --accent-soft: #f4e3d4;
+    --leaf: #5a6f3e;
+    --leaf-soft: #e9efde;
+    --crimson: #a8324a;
+    --crimson-soft: #f5dde3;
+    --gold: #c9a961;
+    --line: #d9cfb8;
+    --shadow: 0 2px 12px rgba(26,22,17,0.06);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body, .vt-root {
+    font-family: 'Inter Tight', -apple-system, sans-serif;
+    color: var(--ink);
+    background: var(--paper);
+    line-height: 1.6;
+  }
+
+  .vt-root {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 32px 20px 80px;
+    background:
+      radial-gradient(circle at 10% 10%, rgba(181,79,29,0.04), transparent 40%),
+      radial-gradient(circle at 90% 80%, rgba(90,111,62,0.04), transparent 40%),
+      var(--paper);
+    min-height: 100vh;
+  }
+
+  .vt-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 28px;
+  }
+  .vt-brand {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: 28px;
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+  .vt-brand em {
+    font-style: italic;
+    font-weight: 400;
+    color: var(--accent);
+  }
+  .vt-sub {
+    font-size: 12px;
+    color: var(--ink-mute);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-top: 6px;
+  }
+  .vt-date {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    color: var(--ink-mute);
+    font-size: 14px;
+  }
+
+  .vt-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 28px;
+    background: var(--paper-2);
+    padding: 4px;
+    border-radius: 12px;
+    flex-wrap: wrap;
+  }
+  .vt-tab {
+    flex: 1;
+    min-width: 100px;
+    padding: 10px 10px;
+    border: none;
+    background: transparent;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink-soft);
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .vt-tab.active {
+    background: var(--paper);
+    color: var(--ink);
+    box-shadow: var(--shadow);
+  }
+  .vt-tab .badge {
+    display: inline-block;
+    background: var(--accent);
+    color: white;
+    border-radius: 10px;
+    padding: 1px 6px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-left: 4px;
+  }
+  .vt-tab .badge.crimson { background: var(--crimson); }
+
+  .vt-panel { display: none; }
+  .vt-panel.active { display: block; animation: fadeIn 0.3s; }
+  @keyframes fadeIn { from {opacity:0; transform:translateY(4px)} to {opacity:1; transform:none} }
+
+  .vt-card {
+    background: white;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 28px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow);
+  }
+  .vt-card h2 {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: 22px;
+    margin-bottom: 6px;
+    letter-spacing: -0.01em;
+  }
+  .vt-card .lead {
+    color: var(--ink-mute);
+    font-size: 14px;
+    margin-bottom: 20px;
+  }
+
+  .vt-input, .vt-textarea {
+    width: 100%;
+    border: 1px solid var(--line);
+    background: var(--paper);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--ink);
+    transition: border-color 0.15s;
+  }
+  .vt-input:focus, .vt-textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: white;
+  }
+  .vt-textarea { min-height: 200px; resize: vertical; font-family: 'SF Mono', Consolas, monospace; font-size: 13px; }
+  .vt-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink-soft);
+    margin-bottom: 6px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .vt-field { margin-bottom: 18px; }
+
+  .vt-btn {
+    background: var(--ink);
+    color: var(--paper);
+    border: none;
+    padding: 12px 22px;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .vt-btn:hover { background: var(--accent); transform: translateY(-1px); }
+  .vt-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .vt-btn.secondary {
+    background: white;
+    color: var(--ink);
+    border: 1px solid var(--line);
+  }
+  .vt-btn.secondary:hover { background: var(--paper-2); color: var(--ink); }
+  .vt-btn.cal {
+    background: var(--leaf);
+    color: white;
+    text-decoration: none;
+  }
+  .vt-btn.cal:hover { background: #4a5e30; }
+  .vt-btn.crimson {
+    background: var(--crimson);
+    color: white;
+  }
+  .vt-btn.crimson:hover { background: #862739; }
+
+  /* 🔊 音声ボタン */
+  .vt-speak {
+    background: white;
+    color: var(--accent);
+    border: 1.5px solid var(--accent);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .vt-speak:hover {
+    background: var(--accent);
+    color: white;
+    transform: scale(1.05);
+  }
+  .vt-speak:active { transform: scale(0.92); }
+  .vt-speak.big {
+    width: 52px;
+    height: 52px;
+    font-size: 22px;
+    margin: 12px auto 24px;
+    display: flex;
+    box-shadow: 0 2px 12px rgba(181,79,29,0.2);
+  }
+  .vt-speak.example-speak {
+    width: 28px;
+    height: 28px;
+    font-size: 13px;
+    border-width: 1px;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+  .vt-speak.speaking {
+    background: var(--accent);
+    color: white;
+    animation: speakPulse 0.6s infinite;
+  }
+  @keyframes speakPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+  }
+
+  .vt-word-list {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-top: 8px;
+  }
+  .vt-word {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 14px 16px;
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    gap: 14px;
+    align-items: center;
+    transition: all 0.15s;
+  }
+  .vt-word:hover { border-color: var(--accent); background: white; }
+  .vt-word .term {
+    font-family: 'Fraunces', serif;
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--ink);
+  }
+  .vt-word .pos {
+    font-size: 11px;
+    color: var(--ink-mute);
+    font-style: italic;
+    margin-left: 6px;
+  }
+  .vt-word .meaning {
+    color: var(--ink-soft);
+    font-size: 14px;
+  }
+  .vt-word .example {
+    color: var(--ink-mute);
+    font-size: 12px;
+    font-style: italic;
+    margin-top: 2px;
+  }
+  .vt-word .source-tag {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    align-self: start;
+    margin-top: 2px;
+    display: inline-block;
+    white-space: nowrap;
+  }
+  .vt-word .source-tag.lesson { background: var(--accent-soft); color: var(--accent); }
+  .vt-word .source-tag.chat { background: var(--leaf-soft); color: var(--leaf); }
+  .vt-word .stage {
+    font-size: 11px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .vt-word .stage.due { background: var(--accent); color: white; }
+  .vt-word .stage.done { background: var(--paper-2); color: var(--ink-mute); }
+  .vt-word .stage.box { background: var(--crimson-soft); color: var(--crimson); }
+  .vt-word .box-streak {
+    font-size: 10px;
+    color: var(--crimson);
+    margin-top: 2px;
+    display: block;
+    font-weight: 600;
+  }
+
+  .vt-quiz { text-align: center; padding: 40px 20px; }
+  .vt-quiz .progress {
+    font-size: 12px;
+    color: var(--ink-mute);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .vt-quiz .direction {
+    display: inline-block;
+    background: var(--paper-2);
+    color: var(--ink-soft);
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+  .vt-quiz .direction.j2e {
+    background: var(--leaf-soft);
+    color: var(--leaf);
+  }
+  .vt-quiz .word {
+    font-family: 'Fraunces', serif;
+    font-size: 56px;
+    font-weight: 500;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    margin-bottom: 8px;
+    word-break: break-word;
+  }
+  .vt-quiz .word em { font-style: italic; color: var(--accent); }
+  .vt-quiz .word.j2e {
+    font-family: 'Inter Tight', sans-serif;
+    font-style: normal;
+    font-weight: 600;
+    font-size: 36px;
+    color: var(--leaf);
+  }
+  .vt-quiz .word.j2e em { color: var(--leaf); font-style: normal; }
+  .vt-quiz .word-pos { color: var(--ink-mute); font-style: italic; margin-bottom: 12px; }
+  .vt-quiz .quiz-example {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    color: var(--ink-soft);
+    margin-bottom: 28px;
+    font-size: 16px;
+  }
+  .vt-options {
+    display: grid;
+    gap: 10px;
+    max-width: 520px;
+    margin: 0 auto;
+  }
+  .vt-option {
+    background: white;
+    border: 1.5px solid var(--line);
+    padding: 14px 18px;
+    border-radius: 12px;
+    font-family: inherit;
+    font-size: 15px;
+    color: var(--ink);
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.15s;
+  }
+  .vt-option:hover { border-color: var(--accent); background: var(--accent-soft); }
+  .vt-option.correct { border-color: var(--leaf); background: var(--leaf-soft); color: var(--leaf); font-weight: 600; }
+  .vt-option.wrong { border-color: var(--accent); background: #f9e3da; color: var(--accent); }
+  .vt-option:disabled { cursor: not-allowed; }
+  .vt-option.j2e {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 17px;
+  }
+
+  .vt-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .vt-stat {
+    background: var(--paper-2);
+    border-radius: 12px;
+    padding: 14px;
+    text-align: center;
+  }
+  .vt-stat.box { background: var(--crimson-soft); }
+  .vt-stat .num {
+    font-family: 'Fraunces', serif;
+    font-size: 28px;
+    font-weight: 500;
+    color: var(--ink);
+    line-height: 1;
+  }
+  .vt-stat.box .num { color: var(--crimson); }
+  .vt-stat .lbl {
+    font-size: 11px;
+    color: var(--ink-mute);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  .vt-empty {
+    text-align: center;
+    padding: 48px 20px;
+    color: var(--ink-mute);
+  }
+  .vt-empty h3 {
+    font-family: 'Fraunces', serif;
+    font-weight: 400;
+    font-size: 20px;
+    color: var(--ink-soft);
+    margin-bottom: 8px;
+  }
+
+  .vt-tip {
+    background: var(--accent-soft);
+    border-left: 3px solid var(--accent);
+    padding: 14px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin-bottom: 16px;
+    line-height: 1.7;
+  }
+  .vt-tip strong { color: var(--accent); }
+  .vt-tip ol { margin: 8px 0 0 20px; }
+  .vt-tip ol li { margin-bottom: 4px; }
+  .vt-tip code {
+    background: white;
+    border: 1px solid var(--line);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'SF Mono', Consolas, monospace;
+    font-size: 12px;
+  }
+
+  .vt-tip.box {
+    background: var(--crimson-soft);
+    border-left-color: var(--crimson);
+  }
+  .vt-tip.box strong { color: var(--crimson); }
+
+  .vt-cal-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .vt-extracted-section { margin-bottom: 20px; }
+  .vt-extracted-section h3 {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: 16px;
+    margin-bottom: 10px;
+    color: var(--ink);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .vt-extracted-section h3 .count {
+    background: var(--paper-2);
+    color: var(--ink-mute);
+    font-family: 'Inter Tight', sans-serif;
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+  }
+
+  .vt-toast {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--ink);
+    color: var(--paper);
+    padding: 12px 24px;
+    border-radius: 10px;
+    font-size: 14px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    z-index: 100;
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+  }
+  .vt-toast.show { opacity: 1; }
+
+  .vt-prompt-box {
+    background: var(--paper-2);
+    border: 1px dashed var(--line);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-family: 'SF Mono', Consolas, monospace;
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin: 10px 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    user-select: all;
+    cursor: text;
+  }
+
+  /* ==== 📚 グループ学習 ==== */
+  .vt-group-list {
+    display: grid;
+    gap: 10px;
+    margin-top: 12px;
+  }
+  .vt-group-card {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--accent);
+    border-radius: 12px;
+    padding: 16px 18px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .vt-group-card:hover {
+    background: white;
+    border-left-color: var(--leaf);
+    transform: translateX(4px);
+    box-shadow: var(--shadow);
+  }
+  .vt-group-title {
+    font-family: 'Fraunces', serif;
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--ink);
+    margin-bottom: 4px;
+  }
+  .vt-group-meta {
+    display: flex;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--ink-mute);
+  }
+  .vt-group-action {
+    font-size: 20px;
+    color: var(--ink-mute);
+  }
+
+  .vt-group-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin: 12px 0 16px;
+    padding: 10px 14px;
+    background: var(--paper-2);
+    border-radius: 10px;
+  }
+  .vt-sort-btn {
+    background: white;
+    border: 1px solid var(--line);
+    color: var(--ink-soft);
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .vt-sort-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .vt-sort-btn.active {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+  }
+
+  .vt-group-num {
+    display: inline-block;
+    background: var(--accent-soft);
+    color: var(--accent);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-family: 'Fraunces', serif;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  /* グループカードのチェックボックス・名前変更・サンプル表示 */
+  .vt-group-card {
+    grid-template-columns: auto 1fr auto;
+  }
+  .vt-group-card.selected {
+    background: var(--accent-soft);
+    border-left-color: var(--leaf);
+    box-shadow: 0 2px 8px rgba(181,79,29,0.15);
+  }
+  .vt-group-checkbox {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 4px;
+  }
+  .vt-group-checkbox input {
+    width: 22px;
+    height: 22px;
+    cursor: pointer;
+    accent-color: var(--accent);
+  }
+  .vt-group-title-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+  .vt-group-rename {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    opacity: 0.5;
+    padding: 2px 6px;
+    border-radius: 6px;
+    transition: all 0.15s;
+  }
+  .vt-group-rename:hover {
+    opacity: 1;
+    background: var(--paper-2);
+  }
+  .vt-group-sample {
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin-bottom: 6px;
+    font-style: italic;
+    font-family: 'Fraunces', serif;
+  }
+
+  /* 合体テストバー(画面下に固定っぽく見せる) */
+  .vt-combined-test-bar {
+    margin-top: 24px;
+    padding: 16px 18px;
+    background: var(--paper-2);
+    border: 2px dashed var(--line);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .vt-combined-info {
+    font-size: 14px;
+    color: var(--ink);
+  }
+  .vt-combined-info strong {
+    color: var(--accent);
+    font-size: 20px;
+    font-family: 'Fraunces', serif;
+  }
+  .vt-combined-test-bar .vt-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  /* ==== ✏️ 穴埋め機能 ==== */
+  .vt-fb-mode-bar {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 16px;
+  }
+  .vt-fb-mode-bar .vt-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .vt-fb-sentence {
+    font-family: 'Fraunces', serif;
+    font-size: 28px;
+    font-weight: 500;
+    line-height: 1.6;
+    color: var(--ink);
+    margin: 24px 0 12px;
+    padding: 24px 20px;
+    background: var(--paper-2);
+    border-radius: 14px;
+    text-align: center;
+  }
+  .vt-fb-blank {
+    display: inline-block;
+    color: var(--accent);
+    font-weight: 700;
+    border-bottom: 3px solid var(--accent);
+    padding: 0 16px;
+    margin: 0 4px;
+  }
+  .vt-fb-answer {
+    display: inline-block;
+    padding: 2px 14px;
+    border-radius: 8px;
+    font-weight: 700;
+    margin: 0 4px;
+  }
+  .vt-fb-answer.correct {
+    background: var(--leaf-soft);
+    color: var(--leaf);
+  }
+  .vt-fb-answer.wrong {
+    background: #f9e3da;
+    color: var(--accent);
+  }
+
+  .vt-fb-choices {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 8px;
+    margin-top: 20px;
+  }
+  @media (max-width: 800px) {
+    .vt-fb-choices { grid-template-columns: repeat(4, 1fr); }
+  }
+  @media (max-width: 500px) {
+    .vt-fb-choices { grid-template-columns: repeat(3, 1fr); }
+  }
+  .vt-fb-choice {
+    background: white;
+    border: 2px solid var(--line);
+    padding: 14px 6px;
+    border-radius: 12px;
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 17px;
+    color: var(--ink);
+    cursor: pointer;
+    transition: all 0.15s;
+    font-weight: 500;
+  }
+  .vt-fb-choice:hover:not(:disabled) {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    transform: translateY(-2px);
+  }
+  .vt-fb-choice:active:not(:disabled) {
+    transform: scale(0.95);
+  }
+  .vt-fb-choice.correct {
+    border-color: var(--leaf);
+    background: var(--leaf-soft);
+    color: var(--leaf);
+    font-weight: 700;
+  }
+  .vt-fb-choice.wrong {
+    border-color: var(--accent);
+    background: #f9e3da;
+    color: var(--accent);
+  }
+  .vt-fb-choice:disabled {
+    cursor: not-allowed;
+  }
+
+  /* 自動進行UI */
+  .vt-fb-auto-next {
+    margin-top: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--paper-2);
+    border-radius: 10px;
+    padding: 10px 16px;
+    font-size: 13px;
+    color: var(--ink-mute);
+  }
+  .vt-fb-skip {
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--ink-soft);
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .vt-fb-skip:hover {
+    background: white;
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* 🔊 もう一度聞く */
+  .vt-fb-replay-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed var(--line);
+    flex-wrap: wrap;
+  }
+  .vt-fb-replay {
+    background: white;
+    border: 1.5px solid var(--accent);
+    color: var(--accent);
+    padding: 6px 14px;
+    border-radius: 14px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .vt-fb-replay:hover {
+    background: var(--accent);
+    color: white;
+    transform: scale(1.03);
+  }
+  .vt-fb-replay.speaking {
+    background: var(--accent);
+    color: white;
+    animation: speakPulse 0.6s infinite;
+  }
+  .vt-fb-replay-text {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    color: var(--ink-soft);
+    font-size: 14px;
+    line-height: 1.4;
+  }
+
+  .vt-fb-result {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    padding: 16px 18px;
+    border-radius: 12px;
+    font-size: 14px;
+  }
+  .vt-fb-result.correct {
+    background: var(--leaf-soft);
+    border-left: 4px solid var(--leaf);
+  }
+  .vt-fb-result.wrong {
+    background: #f9e3da;
+    border-left: 4px solid var(--accent);
+  }
+  .vt-fb-result-icon {
+    font-size: 28px;
+    line-height: 1;
+  }
+  .vt-fb-result-text {
+    font-weight: 600;
+    font-size: 16px;
+    color: var(--ink);
+    margin-bottom: 6px;
+  }
+  .vt-fb-result-hint {
+    color: var(--ink-soft);
+    font-size: 13px;
+  }
+
+  /* 全問題リスト */
+  .vt-fb-list-item {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 14px;
+    align-items: center;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+  }
+  .vt-fb-list-num {
+    font-family: 'Fraunces', serif;
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--accent);
+    min-width: 32px;
+    text-align: center;
+  }
+  .vt-fb-list-content { flex: 1; }
+  .vt-fb-list-sentence {
+    font-family: 'Fraunces', serif;
+    font-size: 16px;
+    color: var(--ink);
+    margin-bottom: 4px;
+  }
+  .vt-fb-list-answer {
+    color: var(--accent);
+    font-weight: 700;
+  }
+  .vt-fb-list-ja {
+    color: var(--ink-soft);
+    font-size: 13px;
+    margin-bottom: 2px;
+  }
+  .vt-fb-list-hint {
+    color: var(--ink-mute);
+    font-size: 12px;
+    font-style: italic;
+    margin-top: 2px;
+  }
+  .vt-fb-list-stats {
+    font-size: 11px;
+    color: var(--leaf);
+    margin-top: 4px;
+    font-weight: 600;
+  }
+
+  @media (max-width: 600px) {
+    .vt-fb-sentence { font-size: 22px; padding: 18px 14px; }
+    .vt-fb-choice { font-size: 16px; padding: 14px 4px; }
+    .vt-fb-mode-bar { grid-template-columns: 1fr; }
+    .vt-fb-list-item { grid-template-columns: auto 1fr; }
+    .vt-fb-list-item .vt-status-buttons { grid-column: 1 / -1; flex-direction: row; }
+  }
+  .vt-status-test-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+    padding: 12px 14px;
+    background: var(--paper-2);
+    border-radius: 10px;
+  }
+  .vt-status-test-bar .vt-btn {
+    padding: 8px 14px;
+    font-size: 13px;
+    min-height: 0;
+  }
+
+  /* ==== クイズ後のステータス変更画面 ==== */
+  .vt-after-quiz {
+    margin-top: 20px;
+  }
+  .vt-after-quiz h3 {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: 18px;
+    margin-bottom: 10px;
+    color: var(--ink);
+  }
+  .vt-after-quiz .lead {
+    color: var(--ink-mute);
+    font-size: 13px;
+    margin-bottom: 16px;
+  }
+  .vt-after-word {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 10px;
+    display: grid;
+    grid-template-columns: 1fr auto auto auto;
+    gap: 10px;
+    align-items: center;
+  }
+  .vt-after-word.allcorrect {
+    border-left: 4px solid var(--leaf);
+    background: var(--leaf-soft);
+  }
+  .vt-after-word.mistake {
+    border-left: 4px solid var(--accent);
+    background: #fde9df;
+  }
+  .vt-after-word .term {
+    font-family: 'Fraunces', serif;
+    font-size: 16px;
+    font-weight: 500;
+  }
+  .vt-after-word .result {
+    font-size: 11px;
+    color: var(--ink-mute);
+    margin-top: 2px;
+  }
+  .vt-after-word .meaning-small {
+    color: var(--ink-soft);
+    font-size: 12px;
+    margin-top: 2px;
+  }
+  .vt-after-word .recommend {
+    font-size: 10px;
+    color: var(--accent);
+    margin-top: 4px;
+    font-weight: 600;
+  }
+  /* 🗑️ テスト後の削除ボタン */
+  .vt-delete-btn-after {
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--ink-mute);
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+    opacity: 0.5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    flex-shrink: 0;
+  }
+  .vt-delete-btn-after:hover {
+    opacity: 1;
+    background: #fde8e0;
+    border-color: var(--accent);
+    color: var(--accent);
+    transform: scale(1.05);
+  }
+  .vt-delete-btn-after:active {
+    transform: scale(0.95);
+  }
+  .vt-filter-bar {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    background: var(--paper-2);
+    padding: 4px;
+    border-radius: 10px;
+  }
+  .vt-filter-btn {
+    flex: 1;
+    min-width: 100px;
+    padding: 8px 10px;
+    border: none;
+    background: transparent;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink-soft);
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+  }
+  .vt-filter-btn.active {
+    background: white;
+    color: var(--ink);
+    box-shadow: var(--shadow);
+  }
+  .vt-filter-btn .count {
+    background: var(--paper-2);
+    color: var(--ink-mute);
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .vt-filter-btn.active .count { background: var(--accent-soft); color: var(--accent); }
+
+  /* ==== ステータスボタン(単語ごと) ==== */
+  .vt-status-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: stretch;
+  }
+  .vt-status-btn {
+    background: white;
+    border: 1.5px solid var(--line);
+    padding: 4px 10px;
+    border-radius: 14px;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    color: var(--ink-mute);
+    white-space: nowrap;
+    min-width: 70px;
+    text-align: center;
+  }
+  .vt-status-btn:hover { transform: scale(1.04); }
+  .vt-status-btn.active.known {
+    background: var(--leaf-soft);
+    border-color: var(--leaf);
+    color: var(--leaf);
+  }
+  .vt-status-btn.active.unsure {
+    background: #fff3cd;
+    border-color: var(--gold);
+    color: #8a6d00;
+  }
+  .vt-status-btn.active.unset {
+    background: var(--paper-2);
+    border-color: var(--ink-mute);
+    color: var(--ink-soft);
+  }
+
+  /* 単語の右カラムに3つのボタンが入るので幅広めに */
+  .vt-word.with-status {
+    grid-template-columns: auto 1fr auto auto auto auto;
+  }
+  .vt-word.with-status .stage { font-size: 10px; padding: 3px 7px; }
+
+  /* 🗑️ 削除ボタン */
+  .vt-delete-btn {
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--ink-mute);
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+    opacity: 0.5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    flex-shrink: 0;
+  }
+  .vt-delete-btn:hover {
+    opacity: 1;
+    background: #fde8e0;
+    border-color: var(--accent);
+    color: var(--accent);
+    transform: scale(1.05);
+  }
+  .vt-delete-btn:active {
+    transform: scale(0.95);
+  }
+
+  /* ==== クイズ設定 ==== */
+  .vt-quiz-config {
+    background: var(--paper-2);
+    border-radius: 12px;
+    padding: 16px;
+    margin: 16px 0;
+  }
+  .vt-quiz-config input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    background: var(--line);
+    border-radius: 3px;
+    outline: none;
+  }
+  .vt-quiz-config input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 22px;
+    height: 22px;
+    background: var(--accent);
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(181,79,29,0.3);
+  }
+  .vt-quiz-config input[type="range"]::-moz-range-thumb {
+    width: 22px;
+    height: 22px;
+    background: var(--accent);
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+  }
+
+  /* 音声設定 */
+  .vt-voice-settings {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--paper-2);
+    padding: 8px 12px;
+    border-radius: 10px;
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin-top: 12px;
+  }
+  .vt-voice-settings label { font-weight: 600; }
+  .vt-voice-settings select {
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-family: inherit;
+    font-size: 12px;
+    background: white;
+    color: var(--ink);
+  }
+
+  @media (max-width: 600px) {
+    .vt-stats { grid-template-columns: 1fr 1fr; }
+    .vt-quiz .word { font-size: 40px; }
+    .vt-quiz .word.j2e { font-size: 26px; }
+    .vt-head { flex-direction: column; align-items: flex-start; gap: 12px; }
+    .vt-word { grid-template-columns: 1fr auto auto; }
+    .vt-word.with-status { grid-template-columns: 1fr auto auto auto; }
+    .vt-word.with-status > div:first-child { grid-column: 1 / -1; margin-bottom: 4px; }
+    .vt-word.with-status .stage { display: none; }
+    .vt-delete-btn { width: 28px; height: 28px; }
+    .vt-word > div:first-child { display: none; }
+    .vt-card { padding: 20px; }
+    .vt-tab { font-size: 12px; padding: 8px 6px; }
+    .vt-status-btn { font-size: 10px; padding: 3px 8px; min-width: 60px; }
+  }
+</style>
+
+<div class="vt-root">
+  <header class="vt-head">
+    <div>
+      <div class="vt-brand">Vocab <em>Atelier</em></div>
+      <div class="vt-sub">Spaced Repetition · v12</div>
+    </div>
+    <div class="vt-date" id="vt-date"></div>
+  </header>
+
+  <nav class="vt-tabs">
+    <button class="vt-tab active" data-tab="today">単語を追加</button>
+    <button class="vt-tab" data-tab="review">復習 <span class="badge" id="due-badge" style="display:none">0</span></button>
+    <button class="vt-tab" data-tab="box">間違えBOX <span class="badge crimson" id="box-badge" style="display:none">0</span></button>
+    <button class="vt-tab" data-tab="library">単語帳</button>
+    <button class="vt-tab" data-tab="groups">📚 グループ</button>
+    <button class="vt-tab" data-tab="fillblank">✏️ 穴埋め</button>
+  </nav>
+
+  <!-- 単語を追加 -->
+  <section class="vt-panel active" data-panel="today">
+    <div class="vt-card">
+      <h2>単語をインポート</h2>
+      <p class="lead">Claudeチャットで整形してもらったJSONを、ここに貼り付けます。</p>
+
+      <div class="vt-tip">
+        <strong>📝 使い方:</strong>
+        <ol>
+          <li>Claudeチャット画面に戻り、教材ページの内容と授業チャットを送る</li>
+          <li>Claudeから返ってきたJSON(<code>{ "lesson": [...], "chat": [...] }</code>)をコピー</li>
+          <li>下の枠に貼り付けて「インポート」を押す</li>
+        </ol>
+      </div>
+
+      <div class="vt-field">
+        <label class="vt-label">📋 JSONを貼り付け</label>
+        <textarea class="vt-textarea" id="json-paste" placeholder='{"lesson":[{"term":"common","pos":"adj","meaning":"一般的な","example":"..."}],"chat":[...]}'></textarea>
+      </div>
+
+      <div style="display:flex; gap:10px; flex-wrap:wrap">
+        <button class="vt-btn" id="import-btn">インポート</button>
+        <button class="vt-btn secondary" id="sample-btn">サンプルを入れる</button>
+      </div>
+
+      <div class="vt-voice-settings">
+        🔊 <label>発音アクセント:</label>
+        <select id="voice-select"></select>
+      </div>
+    </div>
+
+    <div id="extracted-area" style="display:none">
+      <div class="vt-card">
+        <h2>取り込み内容の確認</h2>
+        <p class="lead">確認して、単語帳に保存しましょう。</p>
+
+        <div class="vt-extracted-section" id="lesson-section">
+          <h3>📕 教材から <span class="count" id="lesson-count">0</span></h3>
+          <div class="vt-word-list" id="extracted-lesson"></div>
+        </div>
+
+        <div class="vt-extracted-section" id="chat-section" style="display:none">
+          <h3>💬 チャットから <span class="count" id="chat-count">0</span></h3>
+          <div class="vt-word-list" id="extracted-chat"></div>
+        </div>
+
+        <div style="display:flex; gap:10px; margin-top:20px; flex-wrap:wrap">
+          <button class="vt-btn" id="save-btn">単語帳に保存</button>
+          <button class="vt-btn secondary" id="save-overwrite-btn" style="border-color:var(--accent); color:var(--accent)">上書き保存(意味だけ更新)</button>
+          <button class="vt-btn secondary" id="delete-batch-btn" style="border-color:#c0392b; color:#c0392b">🗑️ 一括削除(termのみ参照)</button>
+          <button class="vt-btn secondary" id="cancel-btn">やり直す</button>
+        </div>
+      </div>
+
+      <div class="vt-card" id="cal-card" style="display:none">
+        <h2>📅 復習をカレンダーに登録</h2>
+        <p class="lead">10分後・24時間後・1週間後の3つの予定を、Googleカレンダーに追加できます。</p>
+        <div class="vt-cal-buttons" id="cal-buttons"></div>
+      </div>
+    </div>
+
+    <div class="vt-card">
+      <h2>💡 Claudeへの依頼テンプレート</h2>
+      <p class="lead">毎朝、Claudeチャットに以下をコピペすると、JSONが返ってきます。</p>
+      <div class="vt-prompt-box" id="prompt-template">今日の英会話授業の単語をJSON形式で整理してください。
+
+【ルール】
+- lessonには教材のNEW単語を全部、chatには学習者が覚えたい追加単語を入れる
+- 教材とチャットで重複する単語があれば、lesson側を優先
+- タイポは正しいスペルに直す
+- 出力はJSONのみ。前置きや説明は一切なし
+- 形式: {"lesson":[{"term":"","pos":"","meaning":"","example":""}],"chat":[...]}
+- posは noun / verb / adj / adv / phrase のいずれか
+
+【教材ページ】
+(ここに教材のテキストを貼り付け)
+
+【授業チャット】
+(ここにZoomチャットを貼り付け)</div>
+      <button class="vt-btn secondary" id="copy-prompt-btn">テンプレートをコピー</button>
+    </div>
+  </section>
+
+  <section class="vt-panel" data-panel="review">
+    <div id="review-content"></div>
+  </section>
+
+  <section class="vt-panel" data-panel="box">
+    <div id="box-content"></div>
+  </section>
+
+  <section class="vt-panel" data-panel="library">
+    <div class="vt-card">
+      <h2>単語帳</h2>
+      <div class="vt-stats">
+        <div class="vt-stat"><div class="num" id="stat-total">0</div><div class="lbl">登録単語</div></div>
+        <div class="vt-stat"><div class="num" id="stat-known" style="color:var(--leaf)">0</div><div class="lbl">🟢 覚えた</div></div>
+        <div class="vt-stat"><div class="num" id="stat-unsure" style="color:var(--gold)">0</div><div class="lbl">🟡 不安</div></div>
+        <div class="vt-stat box"><div class="num" id="stat-box">0</div><div class="lbl">間違えBOX</div></div>
+      </div>
+
+      <div class="vt-filter-bar">
+        <button class="vt-filter-btn active" data-filter="all">すべて <span class="count" id="filter-count-all">0</span></button>
+        <button class="vt-filter-btn" data-filter="known">🟢 覚えた <span class="count" id="filter-count-known">0</span></button>
+        <button class="vt-filter-btn" data-filter="unsure">🟡 不安 <span class="count" id="filter-count-unsure">0</span></button>
+        <button class="vt-filter-btn" data-filter="unset">⚪ 未仕訳 <span class="count" id="filter-count-unset">0</span></button>
+      </div>
+
+      <div class="vt-status-test-bar">
+        <span style="font-size:12px; color:var(--ink-mute); letter-spacing:0.06em; text-transform:uppercase; font-weight:600">⚔️ いつでもテスト:</span>
+        <button class="vt-btn secondary status-test-btn" data-test="known" style="border-color:var(--leaf); color:var(--leaf)">🟢 覚えただけ</button>
+        <button class="vt-btn secondary status-test-btn" data-test="unsure" style="border-color:var(--gold); color:#8a6d00">🟡 不安だけ</button>
+        <button class="vt-btn secondary status-test-btn" data-test="unset">⚪ 未仕訳だけ</button>
+      </div>
+
+      <div class="vt-word-list" id="library-list"></div>
+      <div style="margin-top:20px; display:flex; gap:10px; flex-wrap:wrap">
+        <button class="vt-btn secondary" id="export-btn">エクスポート(バックアップ)</button>
+        <button class="vt-btn secondary" id="export-light-btn" style="border-color:#7c4d20; color:#7c4d20">📦 軽量JSON出力(次のClaude用)</button>
+        <button class="vt-btn secondary" id="export-csv-btn">📊 CSV出力(Excel用)</button>
+        <button class="vt-btn secondary" id="reset-btn" style="color:var(--accent); border-color:var(--accent)">全データリセット</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 📚 グループ学習タブ -->
+  <section class="vt-panel" data-panel="groups">
+    <div id="groups-content"></div>
+  </section>
+
+  <!-- ✏️ 穴埋めタブ -->
+  <section class="vt-panel" data-panel="fillblank">
+    <div id="fillblank-content"></div>
+  </section>
+</div>
+
+<div class="vt-toast" id="toast"></div>
+
+<script>
+(function() {
+  const STORAGE_KEY = 'vocab-atelier-v3';
+  let state = { words: [], voicePreference: '' };
+  let currentExtracted = { lesson: [], chat: [] };
+  let currentQuiz = null;
+  let availableVoices = [];
+
+  function load() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) state = { ...state, ...JSON.parse(raw) };
+      if (state.words) {
+        state.words.forEach(w => {
+          if (w.inBox === undefined) w.inBox = false;
+          if (w.boxStreak === undefined) w.boxStreak = 0;
+          if (w.status === undefined) w.status = 'unset'; // unset / known / unsure
+        });
+      }
+      if (state.maxQuizSize === undefined) state.maxQuizSize = 50;
+      if (!state.groupCustomNames) state.groupCustomNames = {};
+      if (!state.fillBlankProgress) state.fillBlankProgress = {}; // {id: {correct: N, wrong: N, lastTried: timestamp, status: 'unset/known/unsure'}}
+      if (!state.fillBlankData) state.fillBlankData = []; // 問題プール(初回ロード時に設定)
+    } catch(e) { console.error(e); }
+  }
+  function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+  load();
+
+  function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2000);
+  }
+
+  // ---------- 🔊 音声機能 ----------
+  function loadVoices() {
+    if (!('speechSynthesis' in window)) return;
+    availableVoices = speechSynthesis.getVoices().filter(v => v.lang.startsWith('en'));
+    const select = document.getElementById('voice-select');
+    select.innerHTML = '';
+    if (availableVoices.length === 0) {
+      const opt = document.createElement('option');
+      opt.textContent = '読み込み中...';
+      select.appendChild(opt);
+      return;
+    }
+    availableVoices.forEach(v => {
+      const opt = document.createElement('option');
+      opt.value = v.voiceURI;
+      opt.textContent = `${v.name} (${v.lang})`;
+      select.appendChild(opt);
+    });
+    if (state.voicePreference) {
+      select.value = state.voicePreference;
+    } else {
+      // デフォルトはUS英語(あれば)
+      const usVoice = availableVoices.find(v => v.lang === 'en-US');
+      if (usVoice) {
+        select.value = usVoice.voiceURI;
+        state.voicePreference = usVoice.voiceURI;
+        save();
+      }
+    }
+  }
+
+  function speak(text, btnEl) {
+    if (!('speechSynthesis' in window)) {
+      toast('お使いのブラウザは音声に対応していません');
+      return;
+    }
+    if (!text) return;
+
+    speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = 'en-US';
+    utter.rate = 0.9;
+    utter.pitch = 1.0;
+
+    // 選択された音声を適用
+    const selectedURI = state.voicePreference || document.getElementById('voice-select')?.value;
+    if (selectedURI) {
+      const voice = availableVoices.find(v => v.voiceURI === selectedURI);
+      if (voice) {
+        utter.voice = voice;
+        utter.lang = voice.lang;
+      }
+    }
+
+    if (btnEl) {
+      btnEl.classList.add('speaking');
+      utter.onend = () => btnEl.classList.remove('speaking');
+      utter.onerror = () => btnEl.classList.remove('speaking');
+    }
+
+    speechSynthesis.speak(utter);
+  }
+
+  // 音声ボタン作成ヘルパー
+  function makeSpeakButton(text, sizeClass = '') {
+    const btn = document.createElement('button');
+    btn.className = 'vt-speak ' + sizeClass;
+    btn.innerHTML = '🔊';
+    btn.title = '発音を聞く: ' + text;
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      speak(text, btn);
+    });
+    return btn;
+  }
+
+  // 音声リスト初期化
+  if ('speechSynthesis' in window) {
+    loadVoices();
+    speechSynthesis.onvoiceschanged = loadVoices;
+    document.getElementById('voice-select').addEventListener('change', (e) => {
+      state.voicePreference = e.target.value;
+      save();
+      // テスト再生
+      const voice = availableVoices.find(v => v.voiceURI === e.target.value);
+      if (voice) speak('Hello', null);
+    });
+  }
+
+  const d = new Date();
+  document.getElementById('vt-date').textContent =
+    d.toLocaleDateString('ja-JP', { year:'numeric', month:'long', day:'numeric', weekday:'long' });
+
+  document.querySelectorAll('.vt-tab').forEach(t => {
+    t.addEventListener('click', () => {
+      document.querySelectorAll('.vt-tab').forEach(x => x.classList.remove('active'));
+      document.querySelectorAll('.vt-panel').forEach(x => x.classList.remove('active'));
+      t.classList.add('active');
+      document.querySelector(`[data-panel="${t.dataset.tab}"]`).classList.add('active');
+      if (t.dataset.tab === 'review') renderReview();
+      if (t.dataset.tab === 'library') renderLibrary();
+      if (t.dataset.tab === 'box') renderBox();
+      if (t.dataset.tab === 'groups') renderGroups();
+      if (t.dataset.tab === 'fillblank') renderFillBlank();
+    });
+  });
+
+  document.getElementById('import-btn').addEventListener('click', importJSON);
+  document.getElementById('sample-btn').addEventListener('click', loadSample);
+  document.getElementById('cancel-btn').addEventListener('click', () => {
+    document.getElementById('extracted-area').style.display = 'none';
+    currentExtracted = { lesson: [], chat: [] };
+  });
+  document.getElementById('save-btn').addEventListener('click', () => saveExtracted(false));
+  document.getElementById('save-overwrite-btn').addEventListener('click', () => {
+    if (confirm('既存の同じ単語の意味・例文・品詞を上書きしますか?\n(進捗データはそのまま保持されます)')) {
+      saveExtracted(true);
+    }
+  });
+  document.getElementById('delete-batch-btn').addEventListener('click', () => {
+    deleteBatch();
+  });
+  document.getElementById('copy-prompt-btn').addEventListener('click', () => {
+    const t = document.getElementById('prompt-template').textContent;
+    navigator.clipboard.writeText(t).then(() => toast('テンプレートをコピーしました'));
+  });
+  document.getElementById('export-btn').addEventListener('click', exportData);
+  document.getElementById('export-light-btn').addEventListener('click', exportLightJSON);
+  document.getElementById('export-csv-btn').addEventListener('click', exportCSV);
+  document.getElementById('reset-btn').addEventListener('click', resetData);
+
+  // フィルターボタン
+  document.querySelectorAll('.vt-filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentFilter = btn.dataset.filter;
+      renderLibrary();
+    });
+  });
+
+  // ステータス別テストボタン
+  document.querySelectorAll('.status-test-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = btn.dataset.test;
+      let allWords;
+      if (target === 'known') {
+        allWords = state.words.filter(w => w.status === 'known');
+      } else if (target === 'unsure') {
+        allWords = state.words.filter(w => w.status === 'unsure');
+      } else {
+        allWords = state.words.filter(w => !w.status || w.status === 'unset');
+      }
+      if (allWords.length === 0) {
+        toast('そのカテゴリの単語がありません');
+        return;
+      }
+
+      // 12単語に制限(ランダムに選ぶ)
+      const MAX_WORDS = 12;
+      let words;
+      if (allWords.length <= MAX_WORDS) {
+        words = allWords;
+        toast(`${words.length}単語(${words.length * 2}問)のテストを開始`);
+      } else {
+        words = shuffle([...allWords]).slice(0, MAX_WORDS);
+        toast(`${allWords.length}単語から${MAX_WORDS}単語をランダム選出(残りは次回)`);
+      }
+
+      currentQuiz = makeQuiz(words, 'status-' + target);
+      // 復習タブに切り替え
+      document.querySelectorAll('.vt-tab').forEach(x => x.classList.remove('active'));
+      document.querySelectorAll('.vt-panel').forEach(x => x.classList.remove('active'));
+      document.querySelector('[data-tab="review"]').classList.add('active');
+      document.querySelector('[data-panel="review"]').classList.add('active');
+      renderQuizCard();
+    });
+  });
+
+  function importJSON() {
+    const raw = document.getElementById('json-paste').value.trim();
+    if (!raw) { alert('JSONを貼り付けてください'); return; }
+
+    let text = raw.replace(/```json|```/g, '').trim();
+    const start = text.indexOf('{');
+    const end = text.lastIndexOf('}');
+    if (start >= 0 && end > start) text = text.slice(start, end + 1);
+
+    let parsed;
+    try { parsed = JSON.parse(text); }
+    catch(e) {
+      alert('JSONの形式が正しくありません。\n\nエラー: ' + e.message);
+      return;
+    }
+
+    if (!parsed.lesson && !parsed.chat) {
+      alert('JSONに lesson または chat が含まれていません。');
+      return;
+    }
+
+    const now = Date.now();
+    currentExtracted = {
+      lesson: (parsed.lesson || []).map((w, i) => ({
+        id: 'tmp-l-' + now + '-' + i,
+        term: w.term || '', pos: w.pos || '',
+        meaning: w.meaning || '', example: w.example || '',
+        source: 'lesson'
+      })).filter(w => w.term),
+      chat: (parsed.chat || []).map((w, i) => ({
+        id: 'tmp-c-' + now + '-' + i,
+        term: w.term || '', pos: w.pos || '',
+        meaning: w.meaning || '', example: w.example || '',
+        source: 'chat'
+      })).filter(w => w.term)
+    };
+    renderExtracted();
+    document.getElementById('extracted-area').style.display = 'block';
+    document.getElementById('extracted-area').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function loadSample() {
+    const sample = {
+      "lesson": [
+        {"term":"common","pos":"adj","meaning":"一般的な","example":"Nowadays, it's common to see couples who dress alike."},
+        {"term":"receive","pos":"verb","meaning":"受け取る","example":"You will receive the project's complete details through e-mail."},
+        {"term":"handwritten","pos":"adj","meaning":"手書き","example":"The whole class will exchange handwritten letters before they graduate."},
+        {"term":"personalized","pos":"adj","meaning":"名前を入れた、独自の装飾をした","example":"These personalized mugs are really cute!"},
+        {"term":"holiday","pos":"noun","meaning":"休日","example":"The shopping centers expect a lot of people during the holidays."}
+      ],
+      "chat": [
+        {"term":"entire","pos":"adj","meaning":"全体の、全部の","example":"I read the entire book."},
+        {"term":"alike","pos":"adj","meaning":"似ている、同様に","example":"The twins look alike."},
+        {"term":"surely","pos":"adv","meaning":"確かに、きっと","example":"He will surely come tomorrow."},
+        {"term":"rarely","pos":"adv","meaning":"めったに〜ない","example":"I rarely eat fast food."}
+      ]
+    };
+    document.getElementById('json-paste').value = JSON.stringify(sample, null, 2);
+    toast('サンプルを入れました。「インポート」を押してください');
+  }
+
+  function renderWordItem(w, withSpeaker = true) {
+    const div = document.createElement('div');
+    div.className = 'vt-word';
+    div.innerHTML = `
+      <div></div>
+      <div>
+        <div><span class="term">${escapeHtml(w.term)}</span><span class="pos">${escapeHtml(w.pos)}</span></div>
+        <div class="meaning">${escapeHtml(w.meaning)}</div>
+        ${w.example ? `<div class="example">"${escapeHtml(w.example)}"</div>` : ''}
+      </div>
+      <div class="speak-cell"></div>
+      <div></div>
+    `;
+    if (withSpeaker) {
+      const cell = div.querySelector('.speak-cell');
+      cell.appendChild(makeSpeakButton(w.term));
+    }
+    return div;
+  }
+
+  function renderExtracted() {
+    const lessonList = document.getElementById('extracted-lesson');
+    const chatList = document.getElementById('extracted-chat');
+    lessonList.innerHTML = '';
+    chatList.innerHTML = '';
+    currentExtracted.lesson.forEach(w => lessonList.appendChild(renderWordItem(w)));
+    currentExtracted.chat.forEach(w => chatList.appendChild(renderWordItem(w)));
+    document.getElementById('lesson-count').textContent = currentExtracted.lesson.length;
+    document.getElementById('chat-count').textContent = currentExtracted.chat.length;
+    document.getElementById('lesson-section').style.display = currentExtracted.lesson.length ? 'block' : 'none';
+    document.getElementById('chat-section').style.display = currentExtracted.chat.length ? 'block' : 'none';
+  }
+
+  function deleteBatch() {
+    if (!currentExtracted || (!currentExtracted.lesson?.length && !currentExtracted.chat?.length)) {
+      toast('削除する単語リストが解析されていません。JSONを貼り付けて「解析」ボタンを押してください');
+      return;
+    }
+
+    // 削除対象のtermリスト(lesson + chat 両方から)
+    const termsToDelete = [...currentExtracted.lesson, ...currentExtracted.chat].map(w => w.term.toLowerCase().trim());
+
+    // マッチする単語を抽出
+    const matched = state.words.filter(w => termsToDelete.includes(w.term.toLowerCase().trim()));
+    const matchedTerms = matched.map(w => w.term);
+
+    if (matched.length === 0) {
+      toast('該当する単語が見つかりませんでした');
+      return;
+    }
+
+    // 確認ダイアログ
+    const preview = matchedTerms.slice(0, 10).join(', ') + (matchedTerms.length > 10 ? ` ... 他${matchedTerms.length - 10}個` : '');
+    const msg = `以下の${matched.length}個の単語を削除しますか?\n\n${preview}\n\n進捗データもすべて削除されます。元に戻せません。`;
+    if (!confirm(msg)) return;
+
+    // 削除実行
+    const idsToDelete = matched.map(w => w.id);
+    state.words = state.words.filter(w => !idsToDelete.includes(w.id));
+    save();
+    toast(`${matched.length}個の単語を削除しました`);
+
+    // 画面リセット
+    document.getElementById('json-input').value = '';
+    document.getElementById('extracted-area').style.display = 'none';
+    document.getElementById('cal-card').style.display = 'none';
+    currentExtracted = { lesson: [], chat: [] };
+    updateBadges();
+  }
+
+  function saveExtracted(overwrite = false) {
+    const now = Date.now();
+    let added = 0, skipped = 0, updated = 0;
+    [...currentExtracted.lesson, ...currentExtracted.chat].forEach(w => {
+      const existing = state.words.find(x => x.term.toLowerCase() === w.term.toLowerCase());
+      if (existing) {
+        if (overwrite) {
+          // 意味・例文・品詞・sourceだけ更新、進捗は保持
+          existing.pos = w.pos;
+          existing.meaning = w.meaning;
+          existing.example = w.example;
+          existing.source = w.source;
+          updated++;
+        } else {
+          skipped++;
+        }
+        return;
+      }
+      state.words.push({
+        id: 'w-' + now + '-' + Math.random().toString(36).slice(2,7),
+        term: w.term, pos: w.pos,
+        meaning: w.meaning, example: w.example,
+        source: w.source,
+        addedAt: now,
+        stage: 0,
+        nextDue: now + 10 * 60 * 1000,
+        history: [],
+        inBox: false,
+        boxStreak: 0,
+        status: 'unset'
+      });
+      added++;
+    });
+    save();
+    renderCalButtons();
+    document.getElementById('cal-card').style.display = 'block';
+    updateBadges();
+    document.getElementById('json-paste').value = '';
+    let msg = `${added}個を新規保存しました!`;
+    if (updated > 0) msg += `\n${updated}個を上書きしました(進捗は保持)`;
+    if (skipped > 0) msg += `\n${skipped}個を重複スキップ`;
+    alert(msg);
+  }
+
+  function exportData() {
+    const data = JSON.stringify(state, null, 2);
+    navigator.clipboard.writeText(data).then(() => {
+      toast('クリップボードにコピーしました(' + state.words.length + '単語)');
+    }).catch(() => {
+      const blob = new Blob([data], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'vocab-atelier-backup.json';
+      a.click();
+    });
+  }
+
+  function exportLightJSON() {
+    // 単語データから history を除外、不要フィールドも削除
+    const lightWords = state.words.map(w => ({
+      term: w.term || '',
+      pos: w.pos || '',
+      meaning: w.meaning || '',
+      example: w.example || '',
+      status: w.status || 'unset',
+      stage: w.stage || 0,
+      inBox: w.inBox || false,
+      source: w.source || ''
+    }));
+    const lightData = {
+      words: lightWords,
+      totalCount: lightWords.length,
+      exportDate: new Date().toISOString().slice(0, 10),
+      note: '軽量版(履歴除外)- 次のClaudeチャットに渡す用'
+    };
+    const json = JSON.stringify(lightData, null, 2);
+
+    // クリップボードコピー優先、できなければファイルダウンロード
+    navigator.clipboard.writeText(json).then(() => {
+      const sizeKB = Math.round(json.length / 1024);
+      toast(`軽量JSONをコピー(${lightWords.length}単語 / 約${sizeKB}KB)`);
+    }).catch(() => {
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const date = new Date().toISOString().slice(0, 10);
+      a.href = url;
+      a.download = `vocab-light-${date}.json`;
+      a.click();
+    });
+  }
+
+  function exportCSV() {
+    // ヘッダー行
+    const headers = ['term', 'pos', 'meaning', 'example', 'status', 'stage', 'inBox', 'source'];
+    const rows = [headers.join(',')];
+
+    state.words.forEach(w => {
+      const row = [
+        csvEscape(w.term || ''),
+        csvEscape(w.pos || ''),
+        csvEscape(w.meaning || ''),
+        csvEscape(w.example || ''),
+        csvEscape(w.status || 'unset'),
+        w.stage || 0,
+        w.inBox ? 'yes' : 'no',
+        csvEscape(w.source || ''),
+      ];
+      rows.push(row.join(','));
+    });
+
+    const csvContent = '\uFEFF' + rows.join('\n'); // BOM付きでExcel対応
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const date = new Date().toISOString().slice(0, 10);
+    a.download = `vocab-atelier-${date}.csv`;
+    a.click();
+    toast(`CSV出力完了(${state.words.length}単語)`);
+  }
+
+  function csvEscape(s) {
+    if (s == null) return '';
+    s = String(s);
+    // ダブルクォート・カンマ・改行を含む場合はダブルクォートで囲む
+    if (s.includes('"') || s.includes(',') || s.includes('\n')) {
+      return '"' + s.replace(/"/g, '""') + '"';
+    }
+    return s;
+  }
+
+  function resetData() {
+    if (!confirm('本当に全データを削除しますか?この操作は元に戻せません。')) return;
+    if (!confirm('もう一度確認します。本当に全部消しますか?')) return;
+    state = { words: [], voicePreference: state.voicePreference };
+    save();
+    updateBadges();
+    location.reload();
+  }
+
+  function gcalUrl(title, startDate, durationMin) {
+    const fmt = (d) => d.toISOString().replace(/-|:|\.\d+/g, '');
+    const end = new Date(startDate.getTime() + durationMin * 60 * 1000);
+    const params = new URLSearchParams({
+      action: 'TEMPLATE',
+      text: title,
+      dates: `${fmt(startDate)}/${fmt(end)}`,
+      details: 'Vocab Atelier で復習クイズを開きましょう。'
+    });
+    return 'https://calendar.google.com/calendar/render?' + params.toString();
+  }
+
+  function renderCalButtons() {
+    const container = document.getElementById('cal-buttons');
+    const now = new Date();
+    const intervals = [
+      { label: '10分後の復習', mins: 10 },
+      { label: '24時間後の復習', mins: 60 * 24 },
+      { label: '1週間後の復習', mins: 60 * 24 * 7 }
+    ];
+    container.innerHTML = '';
+    intervals.forEach(i => {
+      const start = new Date(now.getTime() + i.mins * 60 * 1000);
+      const url = gcalUrl(`📚 ${i.label}(英単語)`, start, 15);
+      const a = document.createElement('a');
+      a.href = url;
+      a.target = '_blank';
+      a.rel = 'noopener';
+      a.className = 'vt-btn cal';
+      a.textContent = `📅 ${i.label}`;
+      container.appendChild(a);
+    });
+  }
+
+  function getDueWords() {
+    const now = Date.now();
+    // 「覚えた」は完全除外
+    const allDue = state.words.filter(w => w.stage < 3 && w.nextDue <= now && w.status !== 'known');
+
+    // 上限を取得(英→日+日→英で2倍になるので、単語数の上限は半分)
+    const maxQuestions = state.maxQuizSize || 50;
+    const maxWords = Math.floor(maxQuestions / 2);
+
+    if (allDue.length <= maxWords) return allDue;
+
+    // 不安を最優先
+    const unsure = allDue.filter(w => w.status === 'unsure');
+    const unset = allDue.filter(w => w.status === 'unset');
+
+    // 不安が上限を超える場合、古い順(addedAtが古いもの優先)
+    if (unsure.length >= maxWords) {
+      return [...unsure].sort((a,b) => a.addedAt - b.addedAt).slice(0, maxWords);
+    }
+
+    // 不安全部 + 未仕訳でランダムに埋める
+    const remaining = maxWords - unsure.length;
+    const unsetShuffled = shuffle([...unset]).slice(0, remaining);
+    return [...unsure, ...unsetShuffled];
+  }
+  // 今日の対象になりうる単語の総数(バッジ表示用、上限適用前)
+  function getAllDueWords() {
+    const now = Date.now();
+    return state.words.filter(w => w.stage < 3 && w.nextDue <= now && w.status !== 'known');
+  }
+  function getBoxWords() { return state.words.filter(w => w.inBox); }
+
+  function updateBadges() {
+    const due = getAllDueWords().length;
+    const box = getBoxWords().length;
+    const dueBadge = document.getElementById('due-badge');
+    const boxBadge = document.getElementById('box-badge');
+    if (due > 0) { dueBadge.textContent = due; dueBadge.style.display = 'inline-block'; }
+    else { dueBadge.style.display = 'none'; }
+    if (box > 0) { boxBadge.textContent = box; boxBadge.style.display = 'inline-block'; }
+    else { boxBadge.style.display = 'none'; }
+  }
+
+  function renderReview() {
+    const container = document.getElementById('review-content');
+    const allDue = getAllDueWords();
+    if (allDue.length === 0) {
+      const allPending = state.words.filter(w => w.stage < 3 && w.status !== 'known');
+      const next = allPending.sort((a,b) => a.nextDue - b.nextDue)[0];
+      container.innerHTML = `
+        <div class="vt-card">
+          <div class="vt-empty">
+            <h3>今は復習する単語はありません</h3>
+            <p>${next ? '次の復習: ' + new Date(next.nextDue).toLocaleString('ja-JP') : 'まずは「単語を追加」から最初の単語を登録しましょう。'}</p>
+          </div>
+        </div>
+      `;
+      return;
+    }
+
+    // クイズが進行中ならそのまま続ける(通常 or ステータステスト)
+    if (currentQuiz && !currentQuiz.done && (currentQuiz.mode === 'normal' || (currentQuiz.mode && (currentQuiz.mode.startsWith('status-') || currentQuiz.mode.startsWith('group-'))))) {
+      renderQuizCard();
+      return;
+    }
+
+    // クイズ開始前のサマリー画面
+    const due = getDueWords();
+    const unsureCount = allDue.filter(w => w.status === 'unsure').length;
+    const unsetCount = allDue.filter(w => w.status === 'unset').length;
+    const willAsk = due.length;
+    const willSkip = allDue.length - willAsk;
+
+    container.innerHTML = `
+      <div class="vt-card">
+        <h2>今日の復習</h2>
+        <p class="lead">復習対象は <strong style="color:var(--accent)">${allDue.length}単語</strong>(🟡不安 ${unsureCount} / ⚪未仕訳 ${unsetCount})</p>
+
+        <div class="vt-quiz-config">
+          <label class="vt-label">出題数の上限</label>
+          <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap">
+            <input type="range" id="quiz-size" min="10" max="100" step="10" value="${state.maxQuizSize || 50}" style="flex:1; min-width:180px">
+            <div style="font-family:'Fraunces',serif; font-size:24px; min-width:80px; text-align:center;">
+              <strong id="quiz-size-num">${state.maxQuizSize || 50}</strong><span style="color:var(--ink-mute); font-size:14px">問</span>
+            </div>
+          </div>
+          <div style="font-size:12px; color:var(--ink-mute); margin-top:8px">
+            英→日と日→英の2問セットなので、単語数は半分(最大${Math.floor((state.maxQuizSize||50)/2)}単語)
+          </div>
+        </div>
+
+        <div style="background:var(--paper-2); border-radius:10px; padding:14px; margin:16px 0; font-size:13px">
+          📊 <strong>今回の出題:</strong> <span id="quiz-summary">${willAsk}問(${Math.floor(willAsk/2)}単語)</span>
+          ${willSkip > 0 ? `<br><span style="color:var(--ink-mute); font-size:12px">※ 上限により${Math.floor(willSkip/2)}単語が次回に持ち越し</span>` : ''}
+        </div>
+
+        <button class="vt-btn" id="start-quiz" style="width:100%; padding:16px; font-size:16px">⚔️ クイズを始める</button>
+      </div>
+    `;
+
+    const slider = document.getElementById('quiz-size');
+    const num = document.getElementById('quiz-size-num');
+    const summary = document.getElementById('quiz-summary');
+    slider.addEventListener('input', (e) => {
+      const v = parseInt(e.target.value);
+      state.maxQuizSize = v;
+      num.textContent = v;
+      // サマリー再計算
+      const newDue = getDueWords();
+      summary.textContent = `${newDue.length * 2 / 2}問(${newDue.length}単語) ※2問セット`;
+      summary.parentElement.innerHTML = summary.parentElement.innerHTML.replace(
+        /📊 <strong>今回の出題:.*$/s,
+        `📊 <strong>今回の出題:</strong> ${newDue.length * 2}問(${newDue.length}単語)
+         ${(allDue.length - newDue.length) > 0 ? `<br><span style="color:var(--ink-mute); font-size:12px">※ 上限により${allDue.length - newDue.length}単語が次回に持ち越し</span>` : ''}`
+      );
+    });
+    slider.addEventListener('change', () => save());
+    document.getElementById('start-quiz').addEventListener('click', () => {
+      const finalDue = getDueWords();
+      currentQuiz = makeQuiz(finalDue, 'normal');
+      renderQuizCard();
+    });
+  }
+
+  function renderBox() {
+    const container = document.getElementById('box-content');
+    const box = getBoxWords();
+    if (box.length === 0) {
+      container.innerHTML = `
+        <div class="vt-card">
+          <div class="vt-empty">
+            <h3>間違えBOXは空です ✨</h3>
+            <p>復習で間違えた単語がここに自動的に集まります。</p>
+          </div>
+        </div>
+      `;
+      return;
+    }
+    if (!currentQuiz || currentQuiz.done || currentQuiz.mode !== 'box') {
+      container.innerHTML = `
+        <div class="vt-card">
+          <h2>間違えBOX <span style="font-family:'Inter Tight'; font-size:14px; color:var(--ink-mute); font-weight:400">(${box.length}単語)</span></h2>
+          <div class="vt-tip box">
+            <strong>📕 ガチ仕様:</strong> 間違えた単語はここに自動で集まります。
+            <ol>
+              <li>復習で間違えた単語は<strong>Stage 0にリセット</strong>されます</li>
+              <li>このBOX内のクイズで<strong>2回連続正解</strong>すると、BOXから卒業</li>
+              <li>英→日 と 日→英 の両方で間違えなかったら、その回はOK</li>
+            </ol>
+          </div>
+          <button class="vt-btn crimson" id="start-box-quiz" style="margin-bottom:20px">⚔️ 間違えBOXのクイズを始める</button>
+          <div class="vt-word-list" id="box-list"></div>
+        </div>
+      `;
+      const list = document.getElementById('box-list');
+      box.forEach(w => {
+        const div = document.createElement('div');
+        div.className = 'vt-word';
+        div.innerHTML = `
+          <div><span class="source-tag ${w.source}">${w.source === 'lesson' ? '教材' : 'チャット'}</span></div>
+          <div>
+            <div><span class="term">${escapeHtml(w.term)}</span><span class="pos">${escapeHtml(w.pos)}</span></div>
+            <div class="meaning">${escapeHtml(w.meaning)}</div>
+            ${w.example ? `<div class="example">"${escapeHtml(w.example)}"</div>` : ''}
+            <span class="box-streak">連続正解: ${w.boxStreak || 0} / 2</span>
+          </div>
+          <div class="speak-cell"></div>
+          <div class="stage box">BOX</div>
+        `;
+        div.querySelector('.speak-cell').appendChild(makeSpeakButton(w.term));
+        list.appendChild(div);
+      });
+      document.getElementById('start-box-quiz').addEventListener('click', () => {
+        currentQuiz = makeQuiz(box, 'box');
+        renderQuizCard();
+      });
+      return;
+    }
+    renderQuizCard();
+  }
+
+  // ============ 📚 グループ学習機能 ============
+  let currentGroupView = null; // 'list' or 'detail'
+  let currentGroupName = null;
+  let groupSortOrder = 'number'; // 'number' / 'term' / 'status'
+
+  // 意味欄から「【○○系N/M…】」「【○○N/M…】」を抽出してタググループを推定
+  // 意味欄から全ての【○○系N/M】を抽出(複数所属対応)
+  function extractAllGroupsFromMeaning(meaning) {
+    if (!meaning) return [];
+    const results = [];
+    // 【XXX系N/M...】や【XXX N/M...】を全部見つける
+    const regex = /【([^】]*?)\s*(\d+)\s*\/\s*(\d+)[^】]*】/g;
+    let m;
+    while ((m = regex.exec(meaning)) !== null) {
+      results.push({
+        name: m[1].trim(),
+        num: parseInt(m[2]),
+        total: parseInt(m[3])
+      });
+    }
+    return results;
+  }
+
+  // 後方互換:最初の1つだけ返す(既存コードで使用)
+  function extractGroupFromMeaning(meaning) {
+    const all = extractAllGroupsFromMeaning(meaning);
+    return all.length > 0 ? all[0] : null;
+  }
+
+  // クイズのダミー選択肢を取得(同じグループから優先、足りなければランダム)
+  // mode: 'meaning' なら意味を、'term' なら単語を返す
+  // ========================================
+  // クイズ用:意味欄から「発音」「同義語」などのヒントを削除
+  // データ自体は変えず、表示時だけマスクする
+  // ========================================
+  function maskHintsForQuiz(meaning) {
+    if (!meaning) return '';
+    let result = meaning;
+    // 「発音:〜」「発音記号 /xxx/」を削除
+    result = result.replace(/[、,]\s*発音[::]\s*[^、,)()]+/g, '');
+    result = result.replace(/\(発音[::]\s*[^)]+\)/g, '');
+    result = result.replace(/\/[^\/]+\//g, ''); // 発音記号 /xxx/
+    // 「=英単語」のような同義語ヒントを削除
+    result = result.replace(/[、,]?\s*=\s*[A-Za-z][^、,)()]*/g, '');
+    // 「(=英単語)」「(英単語の名詞形)」のような括弧内英語ヒントを削除
+    result = result.replace(/\([^)(]*[A-Za-z]{2,}[^)(]*\)/g, '');
+    // 残った空括弧や句読点ゴミを整理
+    result = result.replace(/\(\s*[、,。]?\s*\)/g, '');
+    result = result.replace(/、\s*、/g, '、');
+    result = result.replace(/、\s*$/g, '');
+    result = result.replace(/\s+/g, ' ').trim();
+    return result;
+  }
+
+  function pickDistractors(word, mode, count) {
+    const myGroups = extractAllGroupsFromMeaning(word.meaning);
+    const myGroupNames = myGroups.map(g => g.name);
+    const correctAnswer = word[mode]; // 正解
+    // 正解と同じテキストを持つ単語は除外(同音異義語・重複対策)
+    const others = state.words.filter(w => w.id !== word.id && w[mode] && w[mode] !== correctAnswer);
+    const distractors = [];
+
+    if (myGroupNames.length > 0) {
+      // いずれかの同じグループに所属する単語を優先
+      const sameGroup = others.filter(w => {
+        const gs = extractAllGroupsFromMeaning(w.meaning);
+        return gs.some(g => myGroupNames.includes(g.name));
+      });
+      const shuffledSame = shuffle([...sameGroup]);
+      shuffledSame.forEach(w => {
+        if (distractors.length < count && !distractors.includes(w[mode])) {
+          distractors.push(w[mode]);
+        }
+      });
+    }
+
+    // 足りなければ他からランダムに補充
+    if (distractors.length < count) {
+      const remaining = others.filter(w => !distractors.includes(w[mode]));
+      const shuffledRemaining = shuffle([...remaining]);
+      shuffledRemaining.forEach(w => {
+        if (distractors.length < count && !distractors.includes(w[mode])) {
+          distractors.push(w[mode]);
+        }
+      });
+    }
+
+    // それでも足りなければプレースホルダー
+    while (distractors.length < count) {
+      distractors.push('— その他 —');
+    }
+    return distractors;
+  }
+
+  // 全単語をグループごとに集計
+  function buildGroupMap() {
+    const groups = {};
+    state.words.forEach(w => {
+      const allGroups = extractAllGroupsFromMeaning(w.meaning);
+      // 各グループに所属させる(同じ単語が複数グループに登場)
+      allGroups.forEach(g => {
+        if (!groups[g.name]) groups[g.name] = { name: g.name, total: g.total, words: [] };
+        groups[g.name].words.push({ ...w, _groupNum: g.num, _groupTotal: g.total });
+        // totalは最大値を採用
+        if (g.total > groups[g.name].total) groups[g.name].total = g.total;
+      });
+    });
+    return groups;
+  }
+
+  let selectedGroupsForTest = new Set();
+
+  function getDisplayName(groupKey) {
+    return state.groupCustomNames[groupKey] || groupKey;
+  }
+
+  function renderGroups() {
+    const container = document.getElementById('groups-content');
+    if (currentGroupView === 'detail' && currentGroupName) {
+      renderGroupDetail(currentGroupName);
+      return;
+    }
+    // グループ一覧
+    const groups = buildGroupMap();
+    const groupArr = Object.values(groups).sort((a,b) => a.name.localeCompare(b.name, 'ja'));
+
+    if (groupArr.length === 0) {
+      container.innerHTML = `
+        <div class="vt-card">
+          <h2>📚 グループ学習</h2>
+          <div class="vt-empty">
+            <h3>まだグループがありません</h3>
+            <p>意味欄に【グループ名N/M】形式が含まれる単語が、自動的にここに集まります。</p>
+          </div>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = `
+      <div class="vt-card">
+        <h2>📚 グループ学習</h2>
+        <p class="lead">関連する単語をセットで学べます。<br><strong>☑️ 複数選んで合体テストもできます</strong>(下のボタン)</p>
+
+        <div class="vt-tip">
+          <strong>💡 使い方:</strong> 各グループの「✏️」で名前を変更できます。チェックボックスで複数選んで一番下の「合体テスト」を押すと、選んだグループの単語を<strong>全部</strong>混ぜたテストになります。
+        </div>
+
+        <div class="vt-group-list" id="group-list"></div>
+
+        <div class="vt-combined-test-bar">
+          <div class="vt-combined-info">
+            <strong id="combined-count">0</strong> グループ選択中
+            <span id="combined-word-count" style="color:var(--ink-mute); font-size:12px; margin-left:8px"></span>
+          </div>
+          <button class="vt-btn" id="combined-test-btn" disabled>⚔️ 選んだグループで合体テスト</button>
+        </div>
+      </div>
+    `;
+
+    const listEl = document.getElementById('group-list');
+    groupArr.forEach(g => {
+      const knownCount = g.words.filter(w => w.status === 'known').length;
+      const unsureCount = g.words.filter(w => w.status === 'unsure').length;
+      const displayName = getDisplayName(g.name);
+
+      // 代表単語(番号順に並べて最初の3つ)
+      const sampleWords = [...g.words]
+        .sort((a,b) => (a._groupNum || 999) - (b._groupNum || 999))
+        .slice(0, 3)
+        .map(w => w.term)
+        .join(' / ');
+      const moreCount = g.words.length - 3;
+      const sampleText = moreCount > 0 ? `${sampleWords} ... 他${moreCount}個` : sampleWords;
+
+      const isChecked = selectedGroupsForTest.has(g.name);
+      const div = document.createElement('div');
+      div.className = 'vt-group-card' + (isChecked ? ' selected' : '');
+      div.innerHTML = `
+        <label class="vt-group-checkbox" title="テスト用に選ぶ">
+          <input type="checkbox" data-group="${escapeHtml(g.name)}" ${isChecked ? 'checked' : ''}>
+        </label>
+        <div class="vt-group-info">
+          <div class="vt-group-title-row">
+            <span class="vt-group-title">${escapeHtml(displayName)}</span>
+            <button class="vt-group-rename" data-group="${escapeHtml(g.name)}" title="名前を変える">✏️</button>
+          </div>
+          <div class="vt-group-sample">${escapeHtml(sampleText)}</div>
+          <div class="vt-group-meta">
+            <span>${g.words.length}単語</span>
+            ${knownCount > 0 ? `<span style="color:var(--leaf)">🟢 ${knownCount}</span>` : ''}
+            ${unsureCount > 0 ? `<span style="color:#8a6d00">🟡 ${unsureCount}</span>` : ''}
+          </div>
+        </div>
+        <div class="vt-group-action">→</div>
+      `;
+
+      // カード本体のクリック(チェックボックス・名前変更ボタン以外)
+      div.addEventListener('click', (e) => {
+        if (e.target.closest('.vt-group-checkbox') || e.target.closest('.vt-group-rename')) return;
+        currentGroupName = g.name;
+        currentGroupView = 'detail';
+        renderGroupDetail(g.name);
+      });
+
+      // チェックボックス
+      const checkbox = div.querySelector('input[type="checkbox"]');
+      checkbox.addEventListener('change', (e) => {
+        e.stopPropagation();
+        if (checkbox.checked) {
+          selectedGroupsForTest.add(g.name);
+          div.classList.add('selected');
+        } else {
+          selectedGroupsForTest.delete(g.name);
+          div.classList.remove('selected');
+        }
+        updateCombinedTestBar();
+      });
+
+      // 名前変更ボタン
+      const renameBtn = div.querySelector('.vt-group-rename');
+      renameBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const currentName = getDisplayName(g.name);
+        const newName = prompt(`グループ名を変更:\n\n元の名前(検出用): ${g.name}\n\n表示名を入力してください(空欄なら元に戻す)`, currentName);
+        if (newName === null) return; // キャンセル
+        if (newName.trim() === '' || newName.trim() === g.name) {
+          delete state.groupCustomNames[g.name];
+        } else {
+          state.groupCustomNames[g.name] = newName.trim();
+        }
+        save();
+        renderGroups();
+        toast('グループ名を更新しました');
+      });
+
+      listEl.appendChild(div);
+    });
+
+    // 合体テストボタンのイベント
+    updateCombinedTestBar();
+    document.getElementById('combined-test-btn').addEventListener('click', startCombinedTest);
+  }
+
+  function updateCombinedTestBar() {
+    const count = selectedGroupsForTest.size;
+    document.getElementById('combined-count').textContent = count;
+    const btn = document.getElementById('combined-test-btn');
+    if (count === 0) {
+      btn.disabled = true;
+      document.getElementById('combined-word-count').textContent = '';
+    } else {
+      btn.disabled = false;
+      // 合計単語数(全部出すので上限なし)
+      const groups = buildGroupMap();
+      let total = 0;
+      selectedGroupsForTest.forEach(name => {
+        if (groups[name]) total += groups[name].words.length;
+      });
+      document.getElementById('combined-word-count').textContent = `(合計${total}単語・${total * 2}問)`;
+    }
+  }
+
+  function startCombinedTest() {
+    const groups = buildGroupMap();
+    let allWords = [];
+    selectedGroupsForTest.forEach(name => {
+      if (groups[name]) {
+        allWords = allWords.concat(groups[name].words);
+      }
+    });
+    if (allWords.length === 0) {
+      toast('単語がありません');
+      return;
+    }
+    // 上限なし、選んだ単語を全部出題
+    toast(`${selectedGroupsForTest.size}グループ・${allWords.length}単語(${allWords.length * 2}問)のテストを開始`);
+    const groupNames = Array.from(selectedGroupsForTest).map(n => getDisplayName(n)).join('+');
+    currentQuiz = makeQuiz(allWords, 'group-' + groupNames);
+    // 復習タブに切り替え
+    document.querySelectorAll('.vt-tab').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.vt-panel').forEach(x => x.classList.remove('active'));
+    document.querySelector('[data-tab="review"]').classList.add('active');
+    document.querySelector('[data-panel="review"]').classList.add('active');
+    renderQuizCard();
+  }
+
+  // ============ ✏️ 穴埋め機能 ============
+  // 内蔵問題プール(To/For/That/As/With の使い分け 50問)
+  const FILLBLANK_DEFAULT_DATA = [
+    { id: "fb001", sentence: "I work ___ a CEO at my company.", answer: "as", ja: "私は会社でCEOとして働いている", hint: "役割・身分の「〜として」" },
+    { id: "fb002", sentence: "I think ___ English is fun.", answer: "that", ja: "英語は楽しいと思う", hint: "「〜ということ」の内容を導く" },
+    { id: "fb003", sentence: "This gift is ___ you.", answer: "for", ja: "このプレゼントはあなたのため", hint: "「〜のため」相手・目的" },
+    { id: "fb004", sentence: "I want to talk ___ you.", answer: "with", ja: "あなたと話したい", hint: "「〜と一緒に」相手と対等" },
+    { id: "fb005", sentence: "I'm going ___ the office.", answer: "to", ja: "オフィスに向かっている", hint: "「〜へ」方向・到達点" },
+    { id: "fb006", sentence: "She is known ___ her kindness.", answer: "for", ja: "彼女は親切で知られている", hint: "「〜で(理由・特徴)」known for" },
+    { id: "fb007", sentence: "I'm happy ___ you joined us.", answer: "that", ja: "あなたが参加してくれて嬉しい", hint: "感情の理由を導く接続詞" },
+    { id: "fb008", sentence: "He spoke ___ a leader.", answer: "as", ja: "彼はリーダーとして話した", hint: "「〜として」役割" },
+    { id: "fb009", sentence: "I agree ___ you.", answer: "with", ja: "あなたに同意します", hint: "agree with人 / agree to案" },
+    { id: "fb010", sentence: "I'm trying ___ improve my English.", answer: "to", ja: "英語を上達させようとしている", hint: "try to + 動詞" },
+    { id: "fb011", sentence: "Thank you ___ your help.", answer: "for", ja: "助けてくれてありがとう", hint: "Thank you for" },
+    { id: "fb012", sentence: "I'm sure ___ he will come.", answer: "that", ja: "彼は来ると確信している", hint: "I'm sure that..." },
+    { id: "fb013", sentence: "She works ___ a teacher.", answer: "as", ja: "彼女は教師として働いている", hint: "「〜として」職業" },
+    { id: "fb014", sentence: "Are you coming ___ us?", answer: "with", ja: "私たちと一緒に来る?", hint: "「〜と一緒に」同行" },
+    { id: "fb015", sentence: "I need ___ leave now.", answer: "to", ja: "もう帰らなくては", hint: "need to + 動詞" },
+    { id: "fb016", sentence: "It's important ___ you to rest.", answer: "for", ja: "あなたが休むことは大切", hint: "important for人 + to do" },
+    { id: "fb017", sentence: "I believe ___ honesty is the best policy.", answer: "that", ja: "正直が最善の策と信じる", hint: "believe that..." },
+    { id: "fb018", sentence: "He works hard ___ usual.", answer: "as", ja: "彼はいつものように熱心に働く", hint: "「〜のように」(as usual)" },
+    { id: "fb019", sentence: "Could you help me ___ this task?", answer: "with", ja: "この作業を手伝ってもらえる?", hint: "help人 with物" },
+    { id: "fb020", sentence: "I look forward ___ meeting you.", answer: "to", ja: "お会いするのを楽しみにしている", hint: "look forward to + ing" },
+    { id: "fb021", sentence: "He paid $100 ___ the book.", answer: "for", ja: "彼は本に100ドル払った", hint: "「〜のために(代金として)」" },
+    { id: "fb022", sentence: "I noticed ___ he was nervous.", answer: "that", ja: "彼が緊張しているのに気づいた", hint: "notice that..." },
+    { id: "fb023", sentence: "She is famous ___ a singer.", answer: "as", ja: "彼女は歌手として有名", hint: "「〜として」職業的肩書き" },
+    { id: "fb024", sentence: "I'm having dinner ___ my family.", answer: "with", ja: "家族と夕食を食べている", hint: "「〜と一緒に」" },
+    { id: "fb025", sentence: "She decided ___ start a new business.", answer: "to", ja: "彼女は新しいビジネスを始めると決めた", hint: "decide to + 動詞" },
+    { id: "fb026", sentence: "Please wait ___ a moment.", answer: "for", ja: "少しお待ちください", hint: "wait for + 期間" },
+    { id: "fb027", sentence: "I hope ___ you have a great day.", answer: "that", ja: "良い1日でありますように", hint: "I hope that..." },
+    { id: "fb028", sentence: "He acted ___ if nothing happened.", answer: "as", ja: "彼は何事もなかったかのように振る舞った", hint: "as if = 「〜であるかのように」" },
+    { id: "fb029", sentence: "I'm satisfied ___ the result.", answer: "with", ja: "結果に満足している", hint: "satisfied with" },
+    { id: "fb030", sentence: "I'd love ___ visit Paris someday.", answer: "to", ja: "いつかパリを訪れたい", hint: "would love to + 動詞" },
+    { id: "fb031", sentence: "I asked ___ a glass of water.", answer: "for", ja: "水を1杯お願いした", hint: "ask for + 物" },
+    { id: "fb032", sentence: "I realized ___ I was wrong.", answer: "that", ja: "自分が間違っていたと気づいた", hint: "realize that..." },
+    { id: "fb033", sentence: "Use this ___ a guideline.", answer: "as", ja: "これをガイドラインとして使って", hint: "「〜として」用途" },
+    { id: "fb034", sentence: "She is comfortable ___ public speaking.", answer: "with", ja: "彼女は人前で話すのが得意", hint: "comfortable with" },
+    { id: "fb035", sentence: "It's time ___ go.", answer: "to", ja: "もう行く時間だ", hint: "time to + 動詞" },
+    { id: "fb036", sentence: "Thanks ___ the opportunity.", answer: "for", ja: "機会をくれてありがとう", hint: "thanks for + 名詞" },
+    { id: "fb037", sentence: "She told me ___ she was leaving.", answer: "that", ja: "彼女は出発すると私に言った", hint: "tell人 that..." },
+    { id: "fb038", sentence: "He started his career ___ an intern.", answer: "as", ja: "彼はインターンとしてキャリアを始めた", hint: "「〜として」役職" },
+    { id: "fb039", sentence: "I had a meeting ___ the CEO.", answer: "with", ja: "CEOと会議をした", hint: "meeting with" },
+    { id: "fb040", sentence: "I'm planning ___ travel next month.", answer: "to", ja: "来月旅行する予定だ", hint: "plan to + 動詞" },
+    { id: "fb041", sentence: "He left early ___ a personal reason.", answer: "for", ja: "彼は個人的な理由で早く帰った", hint: "「〜のため(理由)」" },
+    { id: "fb042", sentence: "I'm afraid ___ I cannot help.", answer: "that", ja: "残念ながら手助けできません", hint: "I'm afraid that... (丁寧な前置き)" },
+    { id: "fb043", sentence: "He served ___ president for 5 years.", answer: "as", ja: "彼は5年間社長を務めた", hint: "「〜として」役職を担う" },
+    { id: "fb044", sentence: "I'm fine ___ this plan.", answer: "with", ja: "この計画で大丈夫", hint: "fine with" },
+    { id: "fb045", sentence: "Please feel free ___ contact me.", answer: "to", ja: "お気軽にご連絡ください", hint: "feel free to + 動詞" },
+    { id: "fb046", sentence: "I bought a gift ___ my wife.", answer: "for", ja: "妻にプレゼントを買った", hint: "「〜のために」相手" },
+    { id: "fb047", sentence: "The fact ___ he's late surprises me.", answer: "that", ja: "彼が遅刻するという事実に驚いた", hint: "the fact that... (同格)" },
+    { id: "fb048", sentence: "He is regarded ___ a genius.", answer: "as", ja: "彼は天才と見なされている", hint: "regard A as B = AをBと見なす" },
+    { id: "fb049", sentence: "I'll talk ___ him tomorrow.", answer: "with", ja: "明日彼と話す", hint: "talk with人 (対話)" },
+    { id: "fb050", sentence: "I'm ready ___ start.", answer: "to", ja: "始める準備ができた", hint: "ready to + 動詞" },
+
+    { id: "fb051", sentence: "Let's talk ___ the project.", answer: "about", ja: "プロジェクトについて話そう", hint: "「〜について」話題(カジュアル)" },
+    { id: "fb052", sentence: "I'm worried ___ the deadline.", answer: "about", ja: "締切が心配だ", hint: "worried about" },
+    { id: "fb053", sentence: "He wrote a book ___ leadership.", answer: "about", ja: "彼はリーダーシップについて本を書いた", hint: "book about + 話題" },
+    { id: "fb054", sentence: "Tell me ___ yourself.", answer: "about", ja: "自己紹介してください", hint: "Tell me about (定型表現)" },
+    { id: "fb055", sentence: "What do you think ___ the proposal?", answer: "about", ja: "提案についてどう思う?", hint: "think about(意見を聞く)" },
+
+    { id: "fb056", sentence: "I sent the report ___ email.", answer: "by", ja: "メールで報告書を送った", hint: "「〜によって(手段)」by + 通信手段" },
+    { id: "fb057", sentence: "Please finish ___ Friday.", answer: "by", ja: "金曜までに終わらせて", hint: "「〜までに(期限)」by + 時間" },
+    { id: "fb058", sentence: "This book was written ___ Murakami.", answer: "by", ja: "この本は村上によって書かれた", hint: "受動態の行為者「〜によって」" },
+    { id: "fb059", sentence: "I'll be back ___ 5 PM.", answer: "by", ja: "17時までに戻る", hint: "by + 時間(期限)" },
+    { id: "fb060", sentence: "He came ___ car.", answer: "by", ja: "彼は車で来た", hint: "by + 交通手段(無冠詞)" },
+
+    { id: "fb061", sentence: "I live ___ Tokyo.", answer: "in", ja: "東京に住んでいる", hint: "「〜に(都市・国の中)」" },
+    { id: "fb062", sentence: "She works ___ marketing.", answer: "in", ja: "彼女はマーケティング分野で働いている", hint: "「〜の分野で」in + 業界" },
+    { id: "fb063", sentence: "The meeting is ___ June.", answer: "in", ja: "会議は6月にある", hint: "in + 月・年・季節" },
+    { id: "fb064", sentence: "I'll see you ___ 30 minutes.", answer: "in", ja: "30分後に会う", hint: "in + 時間(〜後)" },
+    { id: "fb065", sentence: "I'm interested ___ AI.", answer: "in", ja: "AIに興味がある", hint: "interested in(超頻出)" },
+
+    { id: "fb066", sentence: "The book is ___ the desk.", answer: "on", ja: "本は机の上にある", hint: "「〜の上に」接触" },
+    { id: "fb067", sentence: "The meeting is ___ Monday.", answer: "on", ja: "会議は月曜にある", hint: "on + 曜日・日付" },
+    { id: "fb068", sentence: "I depend ___ my team.", answer: "on", ja: "私はチームに頼っている", hint: "depend on(超頻出)" },
+    { id: "fb069", sentence: "Congratulations ___ your promotion!", answer: "on", ja: "昇進おめでとう!", hint: "Congratulations on + 出来事" },
+    { id: "fb070", sentence: "She's ___ the phone.", answer: "on", ja: "彼女は電話中", hint: "on the phone (定型表現)" },
+
+    { id: "fb071", sentence: "He is the CEO ___ the company.", answer: "of", ja: "彼は会社のCEO", hint: "「〜の」所属・所有" },
+    { id: "fb072", sentence: "A cup ___ coffee, please.", answer: "of", ja: "コーヒー一杯ください", hint: "数量+of+名詞" },
+    { id: "fb073", sentence: "I'm proud ___ my team.", answer: "of", ja: "チームを誇りに思う", hint: "proud of" },
+    { id: "fb074", sentence: "Most ___ the staff agreed.", answer: "of", ja: "スタッフの大半が賛成", hint: "Most of + 名詞(全体の一部)" },
+    { id: "fb075", sentence: "I'm afraid ___ failure.", answer: "of", ja: "失敗が怖い", hint: "afraid of" },
+
+    { id: "fb076", sentence: "I'm ___ Japan.", answer: "from", ja: "私は日本出身だ", hint: "「〜出身(起点)」" },
+    { id: "fb077", sentence: "The store is open ___ 9 to 5.", answer: "from", ja: "店は9時から5時まで開いている", hint: "from A to B(期間)" },
+    { id: "fb078", sentence: "I got a gift ___ my mother.", answer: "from", ja: "母からプレゼントをもらった", hint: "from + 人(出所)" },
+    { id: "fb079", sentence: "He's suffering ___ a cold.", answer: "from", ja: "彼は風邪をひいている", hint: "suffer from + 病気" },
+    { id: "fb080", sentence: "This is different ___ the original.", answer: "from", ja: "これはオリジナルとは違う", hint: "different from(超頻出)" },
+
+    { id: "fb081", sentence: "Send the report ___ me.", answer: "to", ja: "報告書を私に送って", hint: "「〜に」相手・宛先" },
+    { id: "fb082", sentence: "I'm grateful ___ your help.", answer: "for", ja: "助けに感謝しています", hint: "grateful for" },
+    { id: "fb083", sentence: "I'm sorry ___ I cannot attend.", answer: "that", ja: "出席できなくてすみません", hint: "I'm sorry that..." },
+    { id: "fb084", sentence: "I'll handle this ___ your manager.", answer: "as", ja: "あなたの上司として対応します", hint: "「〜として」役割" },
+    { id: "fb085", sentence: "Are you familiar ___ this software?", answer: "with", ja: "このソフトに詳しい?", hint: "familiar with" },
+
+    { id: "fb086", sentence: "Let me think ___ it.", answer: "about", ja: "考えさせて", hint: "think about" },
+    { id: "fb087", sentence: "I'll let you know ___ tomorrow.", answer: "by", ja: "明日までにお知らせします", hint: "by + 期限" },
+    { id: "fb088", sentence: "She specializes ___ digital marketing.", answer: "in", ja: "彼女はデジタルマーケが専門", hint: "specialize in + 分野" },
+    { id: "fb089", sentence: "I'll get back ___ you soon.", answer: "to", ja: "すぐ折り返します", hint: "get back to + 人" },
+    { id: "fb090", sentence: "Thanks ___ the update.", answer: "for", ja: "更新ありがとう", hint: "Thanks for + 名詞" },
+
+    { id: "fb091", sentence: "He focuses ___ details.", answer: "on", ja: "彼は細部に集中する", hint: "focus on" },
+    { id: "fb092", sentence: "I'm a fan ___ his work.", answer: "of", ja: "彼の作品のファンだ", hint: "fan of" },
+    { id: "fb093", sentence: "She graduated ___ Harvard.", answer: "from", ja: "ハーバードを卒業した", hint: "graduate from + 学校" },
+    { id: "fb094", sentence: "I'm responsible ___ this project.", answer: "for", ja: "このプロジェクトを担当している", hint: "responsible for" },
+    { id: "fb095", sentence: "He insists ___ paying.", answer: "on", ja: "彼は支払うと言って譲らない", hint: "insist on + 動名詞" },
+
+    { id: "fb096", sentence: "It depends ___ the situation.", answer: "on", ja: "状況による", hint: "depend on(超頻出)" },
+    { id: "fb097", sentence: "I'm aware ___ the issue.", answer: "of", ja: "その問題は認識している", hint: "aware of" },
+    { id: "fb098", sentence: "Please refrain ___ smoking.", answer: "from", ja: "喫煙はお控えください", hint: "refrain from + 動名詞" },
+    { id: "fb099", sentence: "He's good ___ negotiating.", answer: "at", ja: "彼は交渉が上手", hint: "good at + 動名詞(超頻出)" },
+    { id: "fb100", sentence: "Let me think ___ a moment.", answer: "for", ja: "少し考えさせて", hint: "for a moment(時間の長さ)" }
+  ];
+
+  const FILLBLANK_CHOICES = ['to', 'for', 'that', 'as', 'with', 'about', 'by', 'in', 'on', 'of', 'from', 'at'];
+
+  let fillBlankQuiz = null; // {queue: [...], idx: 0, results: [], answers: []}
+
+  function getFillBlankData() {
+    // 初回 or 組み込みデータが増えていたら更新
+    if (!state.fillBlankData || state.fillBlankData.length === 0 || state.fillBlankData.length < FILLBLANK_DEFAULT_DATA.length) {
+      state.fillBlankData = FILLBLANK_DEFAULT_DATA.map(q => ({...q}));
+      save();
+    }
+    return state.fillBlankData;
+  }
+
+  function renderFillBlank() {
+    const container = document.getElementById('fillblank-content');
+    if (fillBlankQuiz && !fillBlankQuiz.done) {
+      renderFillBlankQuiz();
+      return;
+    }
+
+    const data = getFillBlankData();
+    const progress = state.fillBlankProgress || {};
+
+    // 統計
+    let attempted = 0, correctTotal = 0, wrongTotal = 0;
+    let knownCount = 0, unsureCount = 0;
+    data.forEach(q => {
+      const p = progress[q.id];
+      if (p) {
+        attempted++;
+        correctTotal += p.correct || 0;
+        wrongTotal += p.wrong || 0;
+        if (p.status === 'known') knownCount++;
+        if (p.status === 'unsure') unsureCount++;
+      }
+    });
+    const accuracy = (correctTotal + wrongTotal) > 0
+      ? Math.round(correctTotal * 100 / (correctTotal + wrongTotal))
+      : 0;
+
+    container.innerHTML = `
+      <div class="vt-card">
+        <h2>✏️ 穴埋め問題</h2>
+        <p class="lead">前置詞・接続詞の使い分けを徹底トレーニング。<br>To / For / That / As / With / About / By / In / On / Of / From / At の12択から正解を選びます。</p>
+
+        <div class="vt-tip">
+          <strong>💡 ポイント:</strong> 接続詞(That, As)と前置詞(To, For, With, About, By, In, On, Of, From, At)の使い分けは、ニュアンスじゃなく「決まった用法」です。100問やればパターンが体に染み込みます。
+        </div>
+
+        <div class="vt-stats" style="margin: 16px 0">
+          <div class="vt-stat"><div class="num">${data.length}</div><div class="lbl">総問題数</div></div>
+          <div class="vt-stat"><div class="num">${attempted}</div><div class="lbl">挑戦済み</div></div>
+          <div class="vt-stat"><div class="num" style="color:var(--leaf)">${accuracy}%</div><div class="lbl">正答率</div></div>
+          <div class="vt-stat box"><div class="num">${unsureCount}</div><div class="lbl">🟡 不安</div></div>
+        </div>
+
+        <div class="vt-fb-mode-bar">
+          <button class="vt-btn" id="fb-start-all">🔀 全問からランダム25問</button>
+          <button class="vt-btn secondary" id="fb-start-unsure" ${unsureCount === 0 ? 'disabled' : ''}>🟡 不安だけ(${unsureCount}問から最大25問)</button>
+          <button class="vt-btn secondary" id="fb-start-wrong">❌ よく間違える問題(動的・最大25問)</button>
+          <button class="vt-btn secondary" id="fb-start-new">✨ 未挑戦のみ(${data.length - attempted}問から最大25問)</button>
+        </div>
+
+        <div style="font-size:12px; color:var(--ink-mute); margin-top:8px; text-align:center">
+          💡 1回のテストは最大25問・所要時間 約5〜8分
+        </div>
+
+        <div style="margin-top:20px; padding-top:16px; border-top:1px solid var(--line)">
+          <p style="font-size:13px; color:var(--ink-mute); margin-bottom:10px">問題リストを見る:</p>
+          <button class="vt-btn secondary" id="fb-view-list">📋 全問題の一覧(${data.length}問)</button>
+        </div>
+      </div>
+    `;
+
+    // 25問上限のヘルパー
+    const FB_MAX_PER_SESSION = 25;
+    function limitQuestions(questions, mode) {
+      if (questions.length <= FB_MAX_PER_SESSION) {
+        toast(`${questions.length}問のテストを開始`);
+        return questions;
+      }
+      const limited = questions.slice(0, FB_MAX_PER_SESSION);
+      toast(`${questions.length}問から${FB_MAX_PER_SESSION}問を出題(残りは次回)`);
+      return limited;
+    }
+
+    document.getElementById('fb-start-all').addEventListener('click', () => {
+      const questions = shuffle([...data]);
+      fillBlankQuiz = createFillBlankQuiz(limitQuestions(questions, 'all'));
+      renderFillBlankQuiz();
+    });
+    document.getElementById('fb-start-unsure').addEventListener('click', () => {
+      const filtered = data.filter(q => progress[q.id] && progress[q.id].status === 'unsure');
+      if (filtered.length === 0) { toast('不安の問題がありません'); return; }
+      fillBlankQuiz = createFillBlankQuiz(limitQuestions(shuffle([...filtered]), 'unsure'));
+      renderFillBlankQuiz();
+    });
+    document.getElementById('fb-start-wrong').addEventListener('click', () => {
+      // 間違いの多い順に並べる
+      const sorted = [...data].sort((a, b) => {
+        const wa = (progress[a.id] && progress[a.id].wrong) || 0;
+        const wb = (progress[b.id] && progress[b.id].wrong) || 0;
+        return wb - wa;
+      });
+      const filtered = sorted.filter(q => (progress[q.id] && progress[q.id].wrong > 0));
+      if (filtered.length === 0) { toast('間違えた問題がまだありません'); return; }
+      fillBlankQuiz = createFillBlankQuiz(limitQuestions(filtered, 'wrong'));
+      renderFillBlankQuiz();
+    });
+    document.getElementById('fb-start-new').addEventListener('click', () => {
+      const filtered = data.filter(q => !progress[q.id] || (!progress[q.id].correct && !progress[q.id].wrong));
+      if (filtered.length === 0) { toast('未挑戦の問題はありません'); return; }
+      fillBlankQuiz = createFillBlankQuiz(limitQuestions(shuffle([...filtered]), 'new'));
+      renderFillBlankQuiz();
+    });
+    document.getElementById('fb-view-list').addEventListener('click', renderFillBlankList);
+  }
+
+  function createFillBlankQuiz(questions) {
+    return {
+      queue: questions,
+      idx: 0,
+      results: [],
+      answered: [],
+      done: false
+    };
+  }
+
+  function renderFillBlankQuiz() {
+    const container = document.getElementById('fillblank-content');
+    if (!fillBlankQuiz) return;
+
+    if (fillBlankQuiz.idx >= fillBlankQuiz.queue.length) {
+      // 完了画面
+      const correct = fillBlankQuiz.results.filter(r => r).length;
+      const total = fillBlankQuiz.queue.length;
+      const accuracy = Math.round(correct * 100 / total);
+
+      container.innerHTML = `
+        <div class="vt-card">
+          <div style="text-align:center; padding: 24px 16px 12px">
+            <h3 style="font-family:'Fraunces',serif; font-weight:400; font-size:22px; color:var(--ink-soft); margin-bottom:8px">穴埋めセッション完了!</h3>
+            <p style="font-size:24px; color:var(--ink); font-family:'Fraunces',serif">
+              <strong style="color:var(--accent)">${correct}</strong> / ${total} 正解 (${accuracy}%)
+            </p>
+          </div>
+
+          <div class="vt-after-quiz">
+            <h3>📋 各問題の結果と仕訳</h3>
+            <p class="lead">間違えた問題には🟡不安タグをつけて、後で重点復習できます。</p>
+            <div id="fb-result-list"></div>
+          </div>
+
+          <div style="text-align:center; margin-top:24px">
+            <button class="vt-btn" id="fb-quiz-restart">← 穴埋めトップに戻る</button>
+          </div>
+        </div>
+      `;
+
+      const list = document.getElementById('fb-result-list');
+      fillBlankQuiz.queue.forEach((q, i) => {
+        const isCorrect = fillBlankQuiz.results[i];
+        const userAnswer = fillBlankQuiz.answered[i];
+        const progress = state.fillBlankProgress[q.id] || {};
+        const status = progress.status || 'unset';
+
+        const div = document.createElement('div');
+        div.className = 'vt-after-word ' + (isCorrect ? 'allcorrect' : 'mistake');
+        div.innerHTML = `
+          <div>
+            <div class="term" style="font-size:14px; font-family:inherit; font-style:italic">${escapeHtml(q.sentence.replace('___', `<strong style="color:${isCorrect ? 'var(--leaf)' : 'var(--accent)'}">${q.answer}</strong>`))}</div>
+            <div class="meaning-small">${escapeHtml(q.ja)}</div>
+            <div class="result">
+              ${isCorrect ? '⭕ 正解' : `❌ あなたの回答: "${escapeHtml(userAnswer)}" → 正解: "${escapeHtml(q.answer)}"`}
+            </div>
+            ${q.hint ? `<div class="recommend">💡 ${escapeHtml(q.hint)}</div>` : ''}
+          </div>
+          <div class="vt-status-buttons">
+            <button class="vt-status-btn ${status === 'known' ? 'active known' : ''}" data-status="known" data-fbid="${q.id}">🟢</button>
+            <button class="vt-status-btn ${status === 'unsure' ? 'active unsure' : ''}" data-status="unsure" data-fbid="${q.id}">🟡</button>
+            <button class="vt-status-btn ${status === 'unset' ? 'active unset' : ''}" data-status="unset" data-fbid="${q.id}">⚪</button>
+          </div>
+        `;
+        list.appendChild(div);
+      });
+
+      list.querySelectorAll('.vt-status-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const fbid = btn.dataset.fbid;
+          const newStatus = btn.dataset.status;
+          if (!state.fillBlankProgress[fbid]) state.fillBlankProgress[fbid] = {};
+          state.fillBlankProgress[fbid].status = newStatus;
+          save();
+          const row = btn.closest('.vt-after-word');
+          row.querySelectorAll('.vt-status-btn').forEach(b => {
+            b.classList.remove('active', 'known', 'unsure', 'unset');
+            if (b.dataset.status === newStatus) {
+              b.classList.add('active');
+              b.classList.add(newStatus);
+            }
+          });
+          const labels = { known: '🟢 覚えた', unsure: '🟡 不安', unset: '⚪ 未仕訳' };
+          toast(`仕訳を${labels[newStatus]}に変更`);
+        });
+      });
+
+      document.getElementById('fb-quiz-restart').addEventListener('click', () => {
+        fillBlankQuiz = null;
+        renderFillBlank();
+      });
+
+      fillBlankQuiz.done = true;
+      return;
+    }
+
+    // 問題表示
+    const q = fillBlankQuiz.queue[fillBlankQuiz.idx];
+    container.innerHTML = `
+      <div class="vt-card">
+        <div class="vt-quiz">
+          <div class="progress">${fillBlankQuiz.idx + 1} / ${fillBlankQuiz.queue.length}</div>
+          <div class="direction" style="background:#fff3cd; color:#8a6d00">✏️ 空欄に当てはまる単語を選んでください</div>
+
+          <div class="vt-fb-sentence" id="fb-sentence-display">${formatFillBlankSentence(q.sentence)}</div>
+          <div class="quiz-example" style="margin-top:8px; color:var(--ink-mute)">${escapeHtml(q.ja)}</div>
+
+          <div class="vt-fb-choices" id="fb-choices"></div>
+
+          <div id="fb-result-area" style="margin-top:20px"></div>
+        </div>
+      </div>
+    `;
+
+    const choicesEl = document.getElementById('fb-choices');
+    FILLBLANK_CHOICES.forEach(choice => {
+      const btn = document.createElement('button');
+      btn.className = 'vt-fb-choice';
+      btn.textContent = choice;
+      btn.addEventListener('click', () => handleFillBlankAnswer(q, choice, btn));
+      choicesEl.appendChild(btn);
+    });
+  }
+
+  function formatFillBlankSentence(sentence) {
+    return escapeHtml(sentence).replace('___', '<span class="vt-fb-blank">___</span>');
+  }
+
+  function handleFillBlankAnswer(q, chosen, btn) {
+    const isCorrect = (chosen.toLowerCase() === q.answer.toLowerCase());
+
+    // ボタンを無効化
+    document.querySelectorAll('.vt-fb-choice').forEach(b => {
+      b.disabled = true;
+      if (b.textContent.toLowerCase() === q.answer.toLowerCase()) b.classList.add('correct');
+      else if (b === btn && !isCorrect) b.classList.add('wrong');
+    });
+
+    // 文を答え付きで表示し直す
+    const display = document.getElementById('fb-sentence-display');
+    display.innerHTML = escapeHtml(q.sentence).replace(
+      '___',
+      `<span class="vt-fb-answer ${isCorrect ? 'correct' : 'wrong'}">${escapeHtml(q.answer)}</span>`
+    );
+
+    // 🔊 正解入りの完全文を音声で読み上げ(正解・不正解問わず)
+    const fullSentence = q.sentence.replace('___', q.answer);
+    // 表示画面の単語に音声ボタンも追加
+    setTimeout(() => speak(fullSentence, null), 300); // 0.3秒後に読み上げ開始(画面更新を待つ)
+
+    // 結果エリアにヒント+再読み上げボタンを表示
+    const resultArea = document.getElementById('fb-result-area');
+    resultArea.innerHTML = `
+      <div class="vt-fb-result ${isCorrect ? 'correct' : 'wrong'}">
+        <div class="vt-fb-result-icon">${isCorrect ? '⭕' : '❌'}</div>
+        <div style="flex:1">
+          <div class="vt-fb-result-text">${isCorrect ? '正解!' : `不正解。正解は "${escapeHtml(q.answer)}"`}</div>
+          ${q.hint ? `<div class="vt-fb-result-hint">💡 ${escapeHtml(q.hint)}</div>` : ''}
+          <div class="vt-fb-replay-row">
+            <button class="vt-fb-replay" id="fb-replay" title="もう一度聞く">🔊 もう一度聞く</button>
+            <span class="vt-fb-replay-text">"${escapeHtml(fullSentence)}"</span>
+          </div>
+        </div>
+      </div>
+      <div class="vt-fb-auto-next" id="fb-auto-next">
+        <span>${fillBlankQuiz.idx + 1 < fillBlankQuiz.queue.length ? '次の問題へ自動進行...' : '結果画面へ...'}</span>
+        <button class="vt-fb-skip" id="fb-skip">すぐ進む →</button>
+      </div>
+    `;
+
+    // 進捗保存
+    if (!state.fillBlankProgress[q.id]) state.fillBlankProgress[q.id] = { correct: 0, wrong: 0, status: 'unset' };
+    if (isCorrect) state.fillBlankProgress[q.id].correct = (state.fillBlankProgress[q.id].correct || 0) + 1;
+    else state.fillBlankProgress[q.id].wrong = (state.fillBlankProgress[q.id].wrong || 0) + 1;
+    state.fillBlankProgress[q.id].lastTried = Date.now();
+    save();
+
+    fillBlankQuiz.results.push(isCorrect);
+    fillBlankQuiz.answered.push(chosen);
+
+    // 自動進行のタイマー(読み上げ時間を考慮して長めに設定)
+    // 文の長さに応じて読み上げ時間が変わるので、文字数×100ms + 基本秒数
+    const baseDelay = isCorrect ? 1800 : 3000; // 正解は1.8秒、不正解は3秒(ヒントを読む時間)
+    const speechTime = Math.min(fullSentence.length * 70, 4000); // 文の長さに応じて+最大4秒
+    const delay = baseDelay + speechTime;
+
+    const timer = setTimeout(() => {
+      fillBlankQuiz.idx++;
+      renderFillBlankQuiz();
+    }, delay);
+
+    // 「すぐ進む」ボタンでタイマーをキャンセルして即進行
+    const skipBtn = document.getElementById('fb-skip');
+    if (skipBtn) {
+      skipBtn.addEventListener('click', () => {
+        clearTimeout(timer);
+        if ('speechSynthesis' in window) speechSynthesis.cancel(); // 読み上げも止める
+        fillBlankQuiz.idx++;
+        renderFillBlankQuiz();
+      });
+    }
+
+    // 「もう一度聞く」ボタン
+    const replayBtn = document.getElementById('fb-replay');
+    if (replayBtn) {
+      replayBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        clearTimeout(timer); // タイマー一旦止めて、読み上げ終わるまで待つ
+        speak(fullSentence, replayBtn);
+        // 読み上げ後に再度自動進行タイマーをセット
+        const restartTimer = setTimeout(() => {
+          fillBlankQuiz.idx++;
+          renderFillBlankQuiz();
+        }, delay);
+        // 新しいskipボタンイベントも更新
+        if (skipBtn) {
+          skipBtn.onclick = () => {
+            clearTimeout(restartTimer);
+            if ('speechSynthesis' in window) speechSynthesis.cancel();
+            fillBlankQuiz.idx++;
+            renderFillBlankQuiz();
+          };
+        }
+      });
+    }
+  }
+
+  function renderFillBlankList() {
+    const container = document.getElementById('fillblank-content');
+    const data = getFillBlankData();
+    const progress = state.fillBlankProgress || {};
+
+    container.innerHTML = `
+      <div class="vt-card">
+        <button class="vt-btn secondary" id="fb-list-back" style="margin-bottom:14px">← 穴埋めトップに戻る</button>
+        <h2>📋 全${data.length}問の一覧</h2>
+        <p class="lead">各問題の答えと、自分の正解・不正解の履歴を確認できます。</p>
+        <div id="fb-full-list" style="margin-top:16px"></div>
+      </div>
+    `;
+
+    const listEl = document.getElementById('fb-full-list');
+    data.forEach((q, i) => {
+      const p = progress[q.id] || {};
+      const status = p.status || 'unset';
+      const accuracy = (p.correct + p.wrong) > 0
+        ? Math.round(p.correct * 100 / (p.correct + p.wrong))
+        : null;
+      const div = document.createElement('div');
+      div.className = 'vt-fb-list-item';
+      div.innerHTML = `
+        <div class="vt-fb-list-num">${i + 1}</div>
+        <div class="vt-fb-list-content">
+          <div class="vt-fb-list-sentence">${escapeHtml(q.sentence).replace('___', `<strong class="vt-fb-list-answer">${escapeHtml(q.answer)}</strong>`)}</div>
+          <div class="vt-fb-list-ja">${escapeHtml(q.ja)}</div>
+          ${q.hint ? `<div class="vt-fb-list-hint">💡 ${escapeHtml(q.hint)}</div>` : ''}
+          ${accuracy !== null ? `<div class="vt-fb-list-stats">⭕ ${p.correct||0} / ❌ ${p.wrong||0} (正答率 ${accuracy}%)</div>` : '<div class="vt-fb-list-stats" style="color:var(--ink-mute)">未挑戦</div>'}
+        </div>
+        <div class="vt-status-buttons">
+          <button class="vt-status-btn ${status === 'known' ? 'active known' : ''}" data-status="known" data-fbid="${q.id}">🟢</button>
+          <button class="vt-status-btn ${status === 'unsure' ? 'active unsure' : ''}" data-status="unsure" data-fbid="${q.id}">🟡</button>
+          <button class="vt-status-btn ${status === 'unset' ? 'active unset' : ''}" data-status="unset" data-fbid="${q.id}">⚪</button>
+        </div>
+      `;
+      listEl.appendChild(div);
+    });
+
+    listEl.querySelectorAll('.vt-status-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const fbid = btn.dataset.fbid;
+        const newStatus = btn.dataset.status;
+        if (!state.fillBlankProgress[fbid]) state.fillBlankProgress[fbid] = {};
+        state.fillBlankProgress[fbid].status = newStatus;
+        save();
+        const row = btn.closest('.vt-fb-list-item');
+        row.querySelectorAll('.vt-status-btn').forEach(b => {
+          b.classList.remove('active', 'known', 'unsure', 'unset');
+          if (b.dataset.status === newStatus) {
+            b.classList.add('active');
+            b.classList.add(newStatus);
+          }
+        });
+      });
+    });
+
+    document.getElementById('fb-list-back').addEventListener('click', renderFillBlank);
+  }
+
+  function renderGroupDetail(groupName) {
+    const container = document.getElementById('groups-content');
+    const groups = buildGroupMap();
+    const g = groups[groupName];
+    if (!g) { renderGroups(); return; }
+
+    // ソート
+    let sortedWords = [...g.words];
+    if (groupSortOrder === 'number') {
+      sortedWords.sort((a,b) => (a._groupNum || 999) - (b._groupNum || 999));
+    } else if (groupSortOrder === 'term') {
+      sortedWords.sort((a,b) => a.term.localeCompare(b.term));
+    } else if (groupSortOrder === 'status') {
+      const order = { unsure: 0, unset: 1, known: 2 };
+      sortedWords.sort((a,b) => (order[a.status||'unset'] - order[b.status||'unset']));
+    }
+
+    container.innerHTML = `
+      <div class="vt-card">
+        <button class="vt-btn secondary" id="group-back" style="margin-bottom:14px">← グループ一覧に戻る</button>
+        <h2>${escapeHtml(g.name)} <span style="font-family:'Inter Tight'; font-size:14px; color:var(--ink-mute); font-weight:400">(${g.words.length}単語)</span></h2>
+        <p class="lead">このセットの単語を体系的に学習・復習できます。</p>
+
+        <div class="vt-group-controls">
+          <span style="font-size:12px; color:var(--ink-mute); letter-spacing:0.06em; text-transform:uppercase; font-weight:600">並び順:</span>
+          <button class="vt-sort-btn ${groupSortOrder==='number'?'active':''}" data-sort="number">セット番号順</button>
+          <button class="vt-sort-btn ${groupSortOrder==='term'?'active':''}" data-sort="term">アルファベット順</button>
+          <button class="vt-sort-btn ${groupSortOrder==='status'?'active':''}" data-sort="status">ステータス順</button>
+        </div>
+
+        <div class="vt-word-list" id="group-words"></div>
+
+        <div style="margin-top:24px; padding-top:20px; border-top:1px solid var(--line); display:flex; gap:10px; flex-wrap:wrap">
+          <button class="vt-btn" id="group-test">⚔️ このセットだけテスト</button>
+          <button class="vt-btn secondary" id="group-back-bottom">← 一覧に戻る</button>
+        </div>
+      </div>
+    `;
+
+    const wordsEl = document.getElementById('group-words');
+    sortedWords.forEach(w => {
+      const status = w.status || 'unset';
+      const div = document.createElement('div');
+      div.className = 'vt-word with-status';
+      const numLabel = w._groupNum ? `<span class="vt-group-num">${w._groupNum}/${w._groupTotal}</span>` : '';
+      div.innerHTML = `
+        <div>${numLabel}</div>
+        <div>
+          <div><span class="term">${escapeHtml(w.term)}</span><span class="pos">${escapeHtml(w.pos)}</span></div>
+          <div class="meaning">${escapeHtml(w.meaning)}</div>
+          ${w.example ? `<div class="example">"${escapeHtml(w.example)}"</div>` : ''}
+        </div>
+        <div class="speak-cell"></div>
+        <div class="vt-status-buttons">
+          <button class="vt-status-btn ${status === 'known' ? 'active known' : ''}" data-status="known" data-id="${w.id}">🟢</button>
+          <button class="vt-status-btn ${status === 'unsure' ? 'active unsure' : ''}" data-status="unsure" data-id="${w.id}">🟡</button>
+          <button class="vt-status-btn ${status === 'unset' ? 'active unset' : ''}" data-status="unset" data-id="${w.id}">⚪</button>
+        </div>
+      `;
+      div.querySelector('.speak-cell').appendChild(makeSpeakButton(w.term));
+      wordsEl.appendChild(div);
+    });
+
+    // ステータスボタン
+    wordsEl.querySelectorAll('.vt-status-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const wid = btn.dataset.id;
+        const newStatus = btn.dataset.status;
+        const w = state.words.find(x => x.id === wid);
+        if (w) {
+          w.status = newStatus;
+          save();
+          renderGroupDetail(groupName);
+          const labels = { known: '🟢 覚えた', unsure: '🟡 不安', unset: '⚪ 未仕訳' };
+          toast(`「${w.term}」→ ${labels[newStatus]}`);
+        }
+      });
+    });
+
+    // ソートボタン
+    container.querySelectorAll('.vt-sort-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        groupSortOrder = btn.dataset.sort;
+        renderGroupDetail(groupName);
+      });
+    });
+
+    // 戻るボタン
+    const backHandler = () => {
+      currentGroupView = 'list';
+      currentGroupName = null;
+      renderGroups();
+    };
+    document.getElementById('group-back').addEventListener('click', backHandler);
+    document.getElementById('group-back-bottom').addEventListener('click', backHandler);
+
+    // このセットだけテスト
+    document.getElementById('group-test').addEventListener('click', () => {
+      // 上限なし、セット全部を出題
+      toast(`${sortedWords.length}単語(${sortedWords.length * 2}問)のテストを開始`);
+      currentQuiz = makeQuiz(sortedWords, 'group-' + groupName);
+      // 復習タブに切り替え
+      document.querySelectorAll('.vt-tab').forEach(x => x.classList.remove('active'));
+      document.querySelectorAll('.vt-panel').forEach(x => x.classList.remove('active'));
+      document.querySelector('[data-tab="review"]').classList.add('active');
+      document.querySelector('[data-panel="review"]').classList.add('active');
+      renderQuizCard();
+    });
+  }
+  function makeQuiz(words, mode) {
+    // 英→日 と 日→英 を全部作る
+    const items = [];
+    words.forEach(w => {
+      items.push({ word: w, direction: 'e2j' });
+      items.push({ word: w, direction: 'j2e' });
+    });
+
+    // 全体をシャッフル → 同じ単語が連続するなら入れ替える
+    let queue = shuffle(items);
+    queue = avoidConsecutiveSameWord(queue);
+
+    return { queue: queue, idx: 0, total: queue.length, results: [], done: false, mode: mode, currentWordResults: {} };
+  }
+
+  // 同じ単語が連続するのを避けるため、隣り合う問題の単語を入れ替える
+  function avoidConsecutiveSameWord(arr) {
+    const result = [...arr];
+    for (let i = 0; i < result.length - 1; i++) {
+      if (result[i].word.id === result[i + 1].word.id) {
+        // 後方で違う単語の問題を探して、i+1と入れ替える
+        for (let j = i + 2; j < result.length; j++) {
+          // jの単語が i, i+2両方と違うなら入れ替えOK
+          const prevOk = result[i].word.id !== result[j].word.id;
+          const nextOk = (i + 2 >= result.length) || (result[j].word.id !== result[i + 2].word.id);
+          if (prevOk && nextOk) {
+            [result[i + 1], result[j]] = [result[j], result[i + 1]];
+            break;
+          }
+        }
+      }
+    }
+    return result;
+  }
+
+  function renderQuizCard() {
+    const isBox = currentQuiz.mode === 'box';
+    const container = document.getElementById(isBox ? 'box-content' : 'review-content');
+
+    if (currentQuiz.idx >= currentQuiz.queue.length) {
+      const correct = currentQuiz.results.filter(r => r).length;
+
+      // 出題した単語ごとに、両方正解/ミスありを集計
+      const wordSummary = {};
+      currentQuiz.queue.forEach((item, i) => {
+        const wid = item.word.id;
+        if (!wordSummary[wid]) {
+          wordSummary[wid] = { word: item.word, e2j: null, j2e: null };
+        }
+        wordSummary[wid][item.direction] = currentQuiz.results[i];
+      });
+      const wordSummaryArr = Object.values(wordSummary);
+
+      const isStatusTest = currentQuiz.mode && currentQuiz.mode.startsWith('status-');
+      const isGroupTest = currentQuiz.mode && currentQuiz.mode.startsWith('group-');
+      const groupName = isGroupTest ? currentQuiz.mode.slice(6) : '';
+      const headerText = isBox
+        ? '間違えBOXのセッション完了!'
+        : (isStatusTest ? 'ステータス別テスト完了!'
+          : (isGroupTest ? `「${groupName}」セット完了!`
+            : 'お疲れさまでした!'));
+
+      let afterQuizHtml = '';
+      if (wordSummaryArr.length > 0) {
+        afterQuizHtml = `
+          <div class="vt-after-quiz">
+            <h3>📋 出題された単語の仕訳変更</h3>
+            <p class="lead">結果を見て、各単語のステータスを見直しましょう。</p>
+            <div id="after-quiz-list"></div>
+          </div>
+        `;
+      }
+
+      container.innerHTML = `
+        <div class="vt-card">
+          <div style="text-align:center; padding: 24px 16px 12px">
+            <h3 style="font-family:'Fraunces',serif; font-weight:400; font-size:22px; color:var(--ink-soft); margin-bottom:8px">${headerText}</h3>
+            <p style="font-size:24px; color:var(--ink); font-family:'Fraunces',serif">
+              <strong style="color:var(--accent)">${correct}</strong> / ${currentQuiz.total} 正解
+            </p>
+          </div>
+          ${afterQuizHtml}
+          <div style="text-align:center; margin-top:32px; padding-bottom:24px">
+            <button class="vt-btn" id="quiz-restart" style="font-size:16px; padding:12px 32px">${isBox ? '✓ 間違えBOXに戻る' : '✓ 単語帳を見る'}</button>
+          </div>
+        </div>
+      `;
+
+      // 単語別の仕訳変更UIを描画(エラーが起きても下のボタンが押せるようtry-catchで保護)
+      try {
+        const afterList = document.getElementById('after-quiz-list');
+        if (afterList) {
+        wordSummaryArr.forEach(s => {
+          const w = s.word;
+          const e2jOk = s.e2j;
+          const j2eOk = s.j2e;
+          const bothCorrect = e2jOk && j2eOk;
+          const hasMistake = e2jOk === false || j2eOk === false;
+
+          // 推奨ステータス
+          let recommend = '';
+          if (bothCorrect) recommend = '推奨: 🟢 覚えた';
+          else if (hasMistake) recommend = '推奨: 🟡 不安';
+
+          const div = document.createElement('div');
+          div.className = 'vt-after-word ' + (bothCorrect ? 'allcorrect' : (hasMistake ? 'mistake' : ''));
+          div.innerHTML = `
+            <div>
+              <div class="term">${escapeHtml(w.term)}</div>
+              <div class="meaning-small">${escapeHtml(w.meaning)}</div>
+              <div class="result">
+                英→日: ${e2jOk === true ? '⭕' : (e2jOk === false ? '❌' : '—')}
+                / 日→英: ${j2eOk === true ? '⭕' : (j2eOk === false ? '❌' : '—')}
+              </div>
+              ${recommend ? `<div class="recommend">${recommend}</div>` : ''}
+            </div>
+            <div class="after-speak-cell"></div>
+            <div class="vt-status-buttons">
+              <button class="vt-status-btn ${w.status === 'known' ? 'active known' : ''}" data-status="known" data-id="${w.id}">🟢</button>
+              <button class="vt-status-btn ${w.status === 'unsure' ? 'active unsure' : ''}" data-status="unsure" data-id="${w.id}">🟡</button>
+              <button class="vt-status-btn ${(!w.status || w.status === 'unset') ? 'active unset' : ''}" data-status="unset" data-id="${w.id}">⚪</button>
+            </div>
+            <button class="vt-delete-btn-after" data-id="${w.id}" data-term="${escapeHtml(w.term)}" title="この単語を削除">🗑️</button>
+          `;
+          // 音声ボタンを追加
+          div.querySelector('.after-speak-cell').appendChild(makeSpeakButton(w.term));
+          afterList.appendChild(div);
+        });
+
+        afterList.querySelectorAll('.vt-status-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const wid = btn.dataset.id;
+            const newStatus = btn.dataset.status;
+            const w = state.words.find(x => x.id === wid);
+            if (w) {
+              w.status = newStatus;
+              save();
+              // 該当行のボタンだけ更新
+              const row = btn.closest('.vt-after-word');
+              row.querySelectorAll('.vt-status-btn').forEach(b => {
+                b.classList.remove('active', 'known', 'unsure', 'unset');
+                if (b.dataset.status === newStatus) {
+                  b.classList.add('active');
+                  b.classList.add(newStatus);
+                }
+              });
+              const labels = { known: '🟢 覚えた', unsure: '🟡 不安', unset: '⚪ 未仕訳' };
+              toast(`「${w.term}」→ ${labels[newStatus]}`);
+            }
+          });
+        });
+
+        // 🗑️ 削除ボタンのイベント
+        afterList.querySelectorAll('.vt-delete-btn-after').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const id = btn.dataset.id;
+            const term = btn.dataset.term;
+            if (confirm(`「${term}」を削除しますか?\n\n進捗データもすべて削除されます。元に戻せません。`)) {
+              // 削除実行
+              state.words = state.words.filter(w => w.id !== id);
+              save();
+              toast(`「${term}」を削除しました`);
+              // 該当行を画面から消す
+              const row = btn.closest('.vt-after-word');
+              row.style.transition = 'opacity 0.3s, transform 0.3s';
+              row.style.opacity = '0';
+              row.style.transform = 'translateX(20px)';
+              setTimeout(() => row.remove(), 300);
+              updateBadges();
+            }
+          });
+        });
+        }
+      } catch (err) {
+        console.error('仕訳変更UI描画エラー:', err);
+      }
+
+      // restartボタンは絶対に動作するように、setTimeoutで遅延バインド
+      setTimeout(() => {
+        const restartBtn = document.getElementById('quiz-restart');
+        if (restartBtn) {
+          restartBtn.onclick = () => {
+            currentQuiz = null;
+            if (isBox) renderBox();
+            else {
+              document.querySelectorAll('.vt-tab').forEach(x => x.classList.remove('active'));
+              document.querySelectorAll('.vt-panel').forEach(x => x.classList.remove('active'));
+              document.querySelector('[data-tab="library"]').classList.add('active');
+              document.querySelector('[data-panel="library"]').classList.add('active');
+              renderLibrary();
+            }
+          };
+        }
+      }, 50);
+      currentQuiz.done = true;
+      updateBadges();
+      return;
+    }
+
+    const item = currentQuiz.queue[currentQuiz.idx];
+    const word = item.word;
+    const dir = item.direction;
+
+    if (dir === 'e2j') {
+      // 同じグループから優先的にダミー選択肢を取る
+      const distractors = pickDistractors(word, 'meaning', 3);
+      const options = shuffle([word.meaning, ...distractors]);
+      // クイズ表示時のヒント隠し(意味と選択肢)
+      const maskedOptions = options.map(opt => ({ raw: opt, masked: maskHintsForQuiz(opt) }));
+
+      const exampleMasked = word.example
+        ? word.example.replace(new RegExp('\\b' + escapeRegex(word.term) + '\\w*', 'gi'), '_____')
+        : '';
+
+      container.innerHTML = `
+        <div class="vt-card">
+          <div class="vt-quiz">
+            <div class="progress">${currentQuiz.idx + 1} / ${currentQuiz.total}${isBox ? ' · 間違えBOX' : ' · Stage ' + (word.stage + 1)}</div>
+            <div class="direction">英 → 日(意味を選ぶ)</div>
+            <div class="word"><em>${escapeHtml(word.term)}</em></div>
+            <div class="word-pos">${escapeHtml(word.pos || '')}</div>
+            <div id="speak-container"></div>
+            ${exampleMasked ? `<div class="quiz-example">"${escapeHtml(exampleMasked)}"</div>` : ''}
+            <div class="vt-options" id="quiz-opts"></div>
+          </div>
+        </div>
+      `;
+      const speakBtn = makeSpeakButton(word.term, 'big');
+      document.getElementById('speak-container').appendChild(speakBtn);
+      // 自動再生
+      setTimeout(() => speak(word.term, speakBtn), 300);
+
+      const optsEl = document.getElementById('quiz-opts');
+      maskedOptions.forEach(({ raw, masked }) => {
+        const btn = document.createElement('button');
+        btn.className = 'vt-option';
+        btn.textContent = masked || raw; // マスク後が空なら念のため元を表示
+        // 正誤判定は元のmeaningで(マスク前)
+        btn.addEventListener('click', () => answerQuiz(word, dir, raw, btn, raw === word.meaning));
+        optsEl.appendChild(btn);
+      });
+    } else {
+      // 日→英 (同じグループから優先)
+      const distractors = pickDistractors(word, 'term', 3);
+      const options = shuffle([word.term, ...distractors]);
+      // クイズ表示時のヒント隠し(問題の意味文)
+      const meaningMasked = maskHintsForQuiz(word.meaning);
+
+      container.innerHTML = `
+        <div class="vt-card">
+          <div class="vt-quiz">
+            <div class="progress">${currentQuiz.idx + 1} / ${currentQuiz.total}${isBox ? ' · 間違えBOX' : ' · Stage ' + (word.stage + 1)}</div>
+            <div class="direction j2e">日 → 英(英単語を選ぶ)</div>
+            <div class="word j2e">${escapeHtml(meaningMasked || word.meaning)}</div>
+            <div class="word-pos">${escapeHtml(word.pos || '')}</div>
+            <div class="vt-options" id="quiz-opts"></div>
+          </div>
+        </div>
+      `;
+      const optsEl = document.getElementById('quiz-opts');
+      options.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.className = 'vt-option j2e';
+        btn.textContent = opt;
+        btn.addEventListener('click', () => answerQuiz(word, dir, opt, btn, opt === word.term));
+        optsEl.appendChild(btn);
+      });
+    }
+  }
+
+  function answerQuiz(word, dir, chosen, btn, correct) {
+    const allBtns = document.querySelectorAll('.vt-option');
+    const correctText = dir === 'e2j' ? word.meaning : word.term;
+    allBtns.forEach(b => {
+      b.disabled = true;
+      if (b.textContent === correctText) b.classList.add('correct');
+      else if (b === btn && !correct) b.classList.add('wrong');
+    });
+
+    word.history.push({ date: Date.now(), correct, dir });
+
+    if (!currentQuiz.currentWordResults[word.id]) {
+      currentQuiz.currentWordResults[word.id] = [];
+    }
+    currentQuiz.currentWordResults[word.id].push(correct);
+
+    const wordResults = currentQuiz.currentWordResults[word.id];
+    if (wordResults.length >= 2) {
+      const bothCorrect = wordResults.every(r => r);
+      handleWordCompletion(word, bothCorrect);
+      delete currentQuiz.currentWordResults[word.id];
+    }
+
+    currentQuiz.results.push(correct);
+    save();
+
+    // 日→英の答え合わせ後に英単語の発音を再生(発音復習)
+    if (dir === 'j2e') {
+      setTimeout(() => speak(word.term, null), 400);
+    }
+
+    setTimeout(() => { currentQuiz.idx++; renderQuizCard(); }, correct ? 1100 : 1700);
+  }
+
+  function handleWordCompletion(word, bothCorrect) {
+    const isBox = currentQuiz.mode === 'box';
+    const isStatusTest = currentQuiz.mode && currentQuiz.mode.startsWith('status-');
+    const isGroupTest = currentQuiz.mode && currentQuiz.mode.startsWith('group-');
+
+    if (isStatusTest || isGroupTest) {
+      // ステータス別/グループ別テストは復習スケジュールに影響させない
+      return;
+    }
+
+    if (isBox) {
+      if (bothCorrect) {
+        word.boxStreak = (word.boxStreak || 0) + 1;
+        if (word.boxStreak >= 2) {
+          word.inBox = false;
+          word.boxStreak = 0;
+          toast(`🎉 「${word.term}」がBOXから卒業!`);
+        }
+      } else {
+        word.boxStreak = 0;
+      }
+    } else {
+      if (bothCorrect) {
+        word.stage = Math.min(3, word.stage + 1);
+        const next = [10*60*1000, 24*60*60*1000, 7*24*60*60*1000][word.stage - 1] || 0;
+        word.nextDue = Date.now() + next;
+      } else {
+        if (!word.inBox) {
+          word.inBox = true;
+          toast(`📕 「${word.term}」を間違えBOXへ`);
+        }
+        word.stage = 0;
+        word.boxStreak = 0;
+        word.nextDue = Date.now() + 5 * 60 * 1000;
+      }
+    }
+  }
+
+  let currentFilter = 'all';
+
+  function setStatus(wordId, newStatus) {
+    const w = state.words.find(x => x.id === wordId);
+    if (!w) return;
+    w.status = newStatus;
+    save();
+    updateBadges();
+    renderLibrary();
+    const labels = { known: '🟢 覚えた', unsure: '🟡 不安', unset: '⚪ 未仕訳' };
+    toast(`「${w.term}」を${labels[newStatus]}にしました`);
+  }
+
+  function renderLibrary() {
+    // 統計
+    const knownCount = state.words.filter(w => w.status === 'known').length;
+    const unsureCount = state.words.filter(w => w.status === 'unsure').length;
+    const unsetCount = state.words.filter(w => !w.status || w.status === 'unset').length;
+    const boxCount = state.words.filter(w => w.inBox).length;
+
+    document.getElementById('stat-total').textContent = state.words.length;
+    document.getElementById('stat-known').textContent = knownCount;
+    document.getElementById('stat-unsure').textContent = unsureCount;
+    document.getElementById('stat-box').textContent = boxCount;
+
+    // フィルターのカウント
+    document.getElementById('filter-count-all').textContent = state.words.length;
+    document.getElementById('filter-count-known').textContent = knownCount;
+    document.getElementById('filter-count-unsure').textContent = unsureCount;
+    document.getElementById('filter-count-unset').textContent = unsetCount;
+
+    // フィルターボタンのactive状態
+    document.querySelectorAll('.vt-filter-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.filter === currentFilter);
+    });
+
+    const list = document.getElementById('library-list');
+    if (state.words.length === 0) {
+      list.innerHTML = `
+        <div class="vt-empty">
+          <h3>まだ単語がありません</h3>
+          <p>「単語を追加」タブから最初の単語を登録しましょう。</p>
+        </div>
+      `;
+      return;
+    }
+
+    // フィルター適用
+    let filtered = state.words;
+    if (currentFilter === 'known') filtered = state.words.filter(w => w.status === 'known');
+    else if (currentFilter === 'unsure') filtered = state.words.filter(w => w.status === 'unsure');
+    else if (currentFilter === 'unset') filtered = state.words.filter(w => !w.status || w.status === 'unset');
+
+    if (filtered.length === 0) {
+      list.innerHTML = `
+        <div class="vt-empty">
+          <h3>該当する単語はありません</h3>
+          <p>フィルターを変更してみてください。</p>
+        </div>
+      `;
+      return;
+    }
+
+    list.innerHTML = '';
+    const sorted = [...filtered].sort((a,b) => {
+      if (a.inBox !== b.inBox) return a.inBox ? -1 : 1;
+      return b.addedAt - a.addedAt;
+    });
+    const now = Date.now();
+    sorted.forEach(w => {
+      let stageLabel = '', stageClass = '';
+      if (w.inBox) { stageLabel = `BOX ${w.boxStreak||0}/2`; stageClass = 'box'; }
+      else if (w.stage >= 3) { stageLabel = '習得済'; stageClass = 'done'; }
+      else if (w.nextDue <= now) { stageLabel = '復習時'; stageClass = 'due'; }
+      else {
+        const stageNames = ['10分後', '24h後', '1週後'];
+        stageLabel = stageNames[w.stage] || '';
+      }
+      const sourceTag = w.source === 'lesson'
+        ? '<span class="source-tag lesson">教材</span>'
+        : '<span class="source-tag chat">チャット</span>';
+      const status = w.status || 'unset';
+      const div = document.createElement('div');
+      div.className = 'vt-word with-status';
+      div.innerHTML = `
+        <div>${sourceTag}</div>
+        <div>
+          <div><span class="term">${escapeHtml(w.term)}</span><span class="pos">${escapeHtml(w.pos)}</span></div>
+          <div class="meaning">${escapeHtml(w.meaning)}</div>
+          ${w.example ? `<div class="example">"${escapeHtml(w.example)}"</div>` : ''}
+        </div>
+        <div class="speak-cell"></div>
+        <div class="vt-status-buttons">
+          <button class="vt-status-btn ${status === 'known' ? 'active known' : ''}" data-status="known" data-id="${w.id}">🟢 覚えた</button>
+          <button class="vt-status-btn ${status === 'unsure' ? 'active unsure' : ''}" data-status="unsure" data-id="${w.id}">🟡 不安</button>
+          <button class="vt-status-btn ${status === 'unset' ? 'active unset' : ''}" data-status="unset" data-id="${w.id}">⚪ 未</button>
+        </div>
+        <div class="stage ${stageClass}">${stageLabel}</div>
+        <button class="vt-delete-btn" data-id="${w.id}" data-term="${escapeHtml(w.term)}" title="この単語を削除">🗑️</button>
+      `;
+      div.querySelector('.speak-cell').appendChild(makeSpeakButton(w.term));
+      list.appendChild(div);
+    });
+
+    // ステータスボタンにイベント
+    list.querySelectorAll('.vt-status-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        setStatus(btn.dataset.id, btn.dataset.status);
+      });
+    });
+
+    // 削除ボタンにイベント
+    list.querySelectorAll('.vt-delete-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = btn.dataset.id;
+        const term = btn.dataset.term;
+        if (confirm(`「${term}」を削除しますか?\n\n進捗データもすべて削除されます。元に戻せません。`)) {
+          deleteWord(id);
+        }
+      });
+    });
+  }
+
+  function deleteWord(id) {
+    const word = state.words.find(w => w.id === id);
+    if (!word) return;
+    const term = word.term;
+    state.words = state.words.filter(w => w.id !== id);
+    save();
+    toast(`「${term}」を削除しました`);
+    renderLibrary();
+    updateBadges();
+  }
+
+  function calculateStreak() {
+    const days = new Set();
+    state.words.forEach(w => {
+      const d = new Date(w.addedAt);
+      days.add(`${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`);
+      w.history.forEach(h => {
+        const dh = new Date(h.date);
+        days.add(`${dh.getFullYear()}-${dh.getMonth()}-${dh.getDate()}`);
+      });
+    });
+    return days.size;
+  }
+
+  function escapeHtml(s) {
+    if (!s) return '';
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+  }
+  function escapeRegex(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+  function shuffle(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  updateBadges();
+  setInterval(updateBadges, 60000);
+})();
+</script>

@@ -1243,7 +1243,7 @@
   <header class="vt-head">
     <div>
       <div class="vt-brand">Vocab <em>Atelier</em></div>
-      <div class="vt-sub">Spaced Repetition · v12</div>
+      <div class="vt-sub">Spaced Repetition · v13</div>
     </div>
     <div class="vt-date" id="vt-date"></div>
   </header>
@@ -3056,9 +3056,25 @@
     const container = document.getElementById(isBox ? 'box-content' : 'review-content');
 
     if (currentQuiz.idx >= currentQuiz.queue.length) {
+      // ★v13バグ3対策: セッション終了時、まだ2問揃っていない単語の卒業判定を確実に流す。
+      // ガチ仕様(2回連続正解で卒業)は維持。判定漏れだけをなくす。
+      try {
+        if (currentQuiz.currentWordResults) {
+          Object.keys(currentQuiz.currentWordResults).forEach(wid => {
+            const results = currentQuiz.currentWordResults[wid];
+            if (!results || results.length === 0) return;
+            const w = state.words.find(x => x.id === wid);
+            if (!w) return;
+            const allCorrectThisSession = results.every(r => r);
+            handleWordCompletion(w, allCorrectThisSession);
+          });
+          currentQuiz.currentWordResults = {};
+          save();
+        }
+      } catch (e) { console.error('セッション終了時の卒業判定エラー:', e); }
+
       const correct = currentQuiz.results.filter(r => r).length;
 
-      // 出題した単語ごとに、両方正解/ミスありを集計
       const wordSummary = {};
       currentQuiz.queue.forEach((item, i) => {
         const wid = item.word.id;
@@ -3068,6 +3084,10 @@
         wordSummary[wid][item.direction] = currentQuiz.results[i];
       });
       const wordSummaryArr = Object.values(wordSummary);
+
+      // ★v13: 正解した単語・間違えた単語に分ける
+      const okWords = wordSummaryArr.filter(s => (s.e2j !== false) && (s.j2e !== false) && (s.e2j === true || s.j2e === true));
+      const ngWords = wordSummaryArr.filter(s => s.e2j === false || s.j2e === false);
 
       const isStatusTest = currentQuiz.mode && currentQuiz.mode.startsWith('status-');
       const isGroupTest = currentQuiz.mode && currentQuiz.mode.startsWith('group-');
@@ -3082,12 +3102,14 @@
       if (wordSummaryArr.length > 0) {
         afterQuizHtml = `
           <div class="vt-after-quiz">
-            <h3>📋 出題された単語の仕訳変更</h3>
-            <p class="lead">結果を見て、各単語のステータスを見直しましょう。</p>
+            <h3>📋 出題された単語の結果と仕訳</h3>
+            <p class="lead">正解／不正解で分けて表示しています。各単語のステータスを見直しましょう。</p>
             <div id="after-quiz-list"></div>
           </div>
         `;
       }
+
+      const backBtnLabel = isBox ? '✓ 間違えBOXに戻る' : '✓ 単語帳を見る';
 
       container.innerHTML = `
         <div class="vt-card">
@@ -3099,120 +3121,133 @@
           </div>
           ${afterQuizHtml}
           <div style="text-align:center; margin-top:32px; padding-bottom:24px">
-            <button class="vt-btn" id="quiz-restart" style="font-size:16px; padding:12px 32px">${isBox ? '✓ 間違えBOXに戻る' : '✓ 単語帳を見る'}</button>
+            <button class="vt-btn" id="quiz-restart" style="font-size:16px; padding:12px 32px">${backBtnLabel}</button>
           </div>
         </div>
       `;
 
-      // 単語別の仕訳変更UIを描画(エラーが起きても下のボタンが押せるようtry-catchで保護)
       try {
         const afterList = document.getElementById('after-quiz-list');
         if (afterList) {
-        wordSummaryArr.forEach(s => {
-          const w = s.word;
-          const e2jOk = s.e2j;
-          const j2eOk = s.j2e;
-          const bothCorrect = e2jOk && j2eOk;
-          const hasMistake = e2jOk === false || j2eOk === false;
-
-          // 推奨ステータス
-          let recommend = '';
-          if (bothCorrect) recommend = '推奨: 🟢 覚えた';
-          else if (hasMistake) recommend = '推奨: 🟡 不安';
-
-          const div = document.createElement('div');
-          div.className = 'vt-after-word ' + (bothCorrect ? 'allcorrect' : (hasMistake ? 'mistake' : ''));
-          div.innerHTML = `
-            <div>
-              <div class="term">${escapeHtml(w.term)}</div>
-              <div class="meaning-small">${escapeHtml(w.meaning)}</div>
-              <div class="result">
-                英→日: ${e2jOk === true ? '⭕' : (e2jOk === false ? '❌' : '—')}
-                / 日→英: ${j2eOk === true ? '⭕' : (j2eOk === false ? '❌' : '—')}
+          const renderAfterWordRow = (s) => {
+            const w = s.word;
+            const e2jOk = s.e2j;
+            const j2eOk = s.j2e;
+            const bothCorrect = (e2jOk !== false) && (j2eOk !== false) && (e2jOk === true || j2eOk === true);
+            const hasMistake = e2jOk === false || j2eOk === false;
+            let recommend = '';
+            if (bothCorrect) recommend = '推奨: 🟢 覚えた';
+            else if (hasMistake) recommend = '推奨: 🟡 不安';
+            const div = document.createElement('div');
+            div.className = 'vt-after-word ' + (bothCorrect ? 'allcorrect' : (hasMistake ? 'mistake' : ''));
+            const meaningLine = hasMistake
+              ? `<div class="meaning-small">正しい意味: <strong>${escapeHtml(w.meaning)}</strong></div>`
+              : `<div class="meaning-small">${escapeHtml(w.meaning)}</div>`;
+            div.innerHTML = `
+              <div>
+                <div class="term">${escapeHtml(w.term)}</div>
+                ${meaningLine}
+                <div class="result">
+                  英→日: ${e2jOk === true ? '⭕' : (e2jOk === false ? '❌' : '—')}
+                  / 日→英: ${j2eOk === true ? '⭕' : (j2eOk === false ? '❌' : '—')}
+                </div>
+                ${recommend ? `<div class="recommend">${recommend}</div>` : ''}
               </div>
-              ${recommend ? `<div class="recommend">${recommend}</div>` : ''}
-            </div>
-            <div class="after-speak-cell"></div>
-            <div class="vt-status-buttons">
-              <button class="vt-status-btn ${w.status === 'known' ? 'active known' : ''}" data-status="known" data-id="${w.id}">🟢</button>
-              <button class="vt-status-btn ${w.status === 'unsure' ? 'active unsure' : ''}" data-status="unsure" data-id="${w.id}">🟡</button>
-              <button class="vt-status-btn ${(!w.status || w.status === 'unset') ? 'active unset' : ''}" data-status="unset" data-id="${w.id}">⚪</button>
-            </div>
-            <button class="vt-delete-btn-after" data-id="${w.id}" data-term="${escapeHtml(w.term)}" title="この単語を削除">🗑️</button>
-          `;
-          // 音声ボタンを追加
-          div.querySelector('.after-speak-cell').appendChild(makeSpeakButton(w.term));
-          afterList.appendChild(div);
-        });
+              <div class="after-speak-cell"></div>
+              <div class="vt-status-buttons">
+                <button class="vt-status-btn ${w.status === 'known' ? 'active known' : ''}" data-status="known" data-id="${w.id}">🟢</button>
+                <button class="vt-status-btn ${w.status === 'unsure' ? 'active unsure' : ''}" data-status="unsure" data-id="${w.id}">🟡</button>
+                <button class="vt-status-btn ${(!w.status || w.status === 'unset') ? 'active unset' : ''}" data-status="unset" data-id="${w.id}">⚪</button>
+              </div>
+              <button class="vt-delete-btn-after" data-id="${w.id}" data-term="${escapeHtml(w.term)}" title="この単語を削除">🗑️</button>
+            `;
+            div.querySelector('.after-speak-cell').appendChild(makeSpeakButton(w.term));
+            afterList.appendChild(div);
+          };
 
-        afterList.querySelectorAll('.vt-status-btn').forEach(btn => {
-          btn.addEventListener('click', () => {
-            const wid = btn.dataset.id;
-            const newStatus = btn.dataset.status;
-            const w = state.words.find(x => x.id === wid);
-            if (w) {
-              w.status = newStatus;
-              save();
-              // 該当行のボタンだけ更新
-              const row = btn.closest('.vt-after-word');
-              row.querySelectorAll('.vt-status-btn').forEach(b => {
-                b.classList.remove('active', 'known', 'unsure', 'unset');
-                if (b.dataset.status === newStatus) {
-                  b.classList.add('active');
-                  b.classList.add(newStatus);
-                }
-              });
-              const labels = { known: '🟢 覚えた', unsure: '🟡 不安', unset: '⚪ 未仕訳' };
-              toast(`「${w.term}」→ ${labels[newStatus]}`);
-            }
-          });
-        });
+          if (ngWords.length > 0) {
+            const t = document.createElement('div');
+            t.style.cssText = "font-family:'Fraunces',serif; font-weight:500; font-size:16px; margin:18px 0 10px; color:var(--accent)";
+            t.innerHTML = `❌ 間違えた単語 <span style="font-family:'Inter Tight',sans-serif; font-size:12px; padding:2px 8px; border-radius:10px; font-weight:600; background:#f9e3da; color:var(--accent)">${ngWords.length}</span>`;
+            afterList.appendChild(t);
+            ngWords.forEach(renderAfterWordRow);
+          }
+          if (okWords.length > 0) {
+            const t = document.createElement('div');
+            t.style.cssText = "font-family:'Fraunces',serif; font-weight:500; font-size:16px; margin:18px 0 10px; color:var(--leaf)";
+            t.innerHTML = `⭕ 正解した単語 <span style="font-family:'Inter Tight',sans-serif; font-size:12px; padding:2px 8px; border-radius:10px; font-weight:600; background:var(--leaf-soft); color:var(--leaf)">${okWords.length}</span>`;
+            afterList.appendChild(t);
+            okWords.forEach(renderAfterWordRow);
+          }
 
-        // 🗑️ 削除ボタンのイベント
-        afterList.querySelectorAll('.vt-delete-btn-after').forEach(btn => {
-          btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const id = btn.dataset.id;
-            const term = btn.dataset.term;
-            if (confirm(`「${term}」を削除しますか?\n\n進捗データもすべて削除されます。元に戻せません。`)) {
-              // 削除実行
-              state.words = state.words.filter(w => w.id !== id);
-              save();
-              toast(`「${term}」を削除しました`);
-              // 該当行を画面から消す
-              const row = btn.closest('.vt-after-word');
-              row.style.transition = 'opacity 0.3s, transform 0.3s';
-              row.style.opacity = '0';
-              row.style.transform = 'translateX(20px)';
-              setTimeout(() => row.remove(), 300);
-              updateBadges();
-            }
+          afterList.querySelectorAll('.vt-status-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+              const wid = btn.dataset.id;
+              const newStatus = btn.dataset.status;
+              const w = state.words.find(x => x.id === wid);
+              if (w) {
+                w.status = newStatus;
+                save();
+                const row = btn.closest('.vt-after-word');
+                row.querySelectorAll('.vt-status-btn').forEach(b => {
+                  b.classList.remove('active', 'known', 'unsure', 'unset');
+                  if (b.dataset.status === newStatus) {
+                    b.classList.add('active');
+                    b.classList.add(newStatus);
+                  }
+                });
+                const labels = { known: '🟢 覚えた', unsure: '🟡 不安', unset: '⚪ 未仕訳' };
+                toast(`「${w.term}」→ ${labels[newStatus]}`);
+              }
+            });
           });
-        });
+
+          afterList.querySelectorAll('.vt-delete-btn-after').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              const id = btn.dataset.id;
+              const term = btn.dataset.term;
+              if (confirm(`「${term}」を削除しますか?\n\n進捗データもすべて削除されます。元に戻せません。`)) {
+                state.words = state.words.filter(w => w.id !== id);
+                save();
+                toast(`「${term}」を削除しました`);
+                const row = btn.closest('.vt-after-word');
+                row.style.transition = 'opacity 0.3s, transform 0.3s';
+                row.style.opacity = '0';
+                row.style.transform = 'translateX(20px)';
+                setTimeout(() => row.remove(), 300);
+                updateBadges();
+              }
+            });
+          });
         }
       } catch (err) {
         console.error('仕訳変更UI描画エラー:', err);
       }
 
-      // restartボタンは絶対に動作するように、setTimeoutで遅延バインド
-      setTimeout(() => {
-        const restartBtn = document.getElementById('quiz-restart');
-        if (restartBtn) {
-          restartBtn.onclick = () => {
-            currentQuiz = null;
-            if (isBox) renderBox();
-            else {
-              document.querySelectorAll('.vt-tab').forEach(x => x.classList.remove('active'));
-              document.querySelectorAll('.vt-panel').forEach(x => x.classList.remove('active'));
-              document.querySelector('[data-tab="library"]').classList.add('active');
-              document.querySelector('[data-panel="library"]').classList.add('active');
-              renderLibrary();
-            }
-          };
-        }
-      }, 50);
+      // ★v13バグ1対策: 「間違えBOXに戻る」ボタンを確実に動かす
       currentQuiz.done = true;
       updateBadges();
+
+      const restartBtn = document.getElementById('quiz-restart');
+      if (restartBtn) {
+        restartBtn.addEventListener('click', () => {
+          currentQuiz = null;
+          if (isBox) {
+            document.querySelectorAll('.vt-tab').forEach(x => x.classList.remove('active'));
+            document.querySelectorAll('.vt-panel').forEach(x => x.classList.remove('active'));
+            document.querySelector('[data-tab="box"]').classList.add('active');
+            document.querySelector('[data-panel="box"]').classList.add('active');
+            renderBox();
+          } else {
+            document.querySelectorAll('.vt-tab').forEach(x => x.classList.remove('active'));
+            document.querySelectorAll('.vt-panel').forEach(x => x.classList.remove('active'));
+            document.querySelector('[data-tab="library"]').classList.add('active');
+            document.querySelector('[data-panel="library"]').classList.add('active');
+            renderLibrary();
+          }
+        });
+      }
       return;
     }
 
@@ -3313,14 +3348,33 @@
     currentQuiz.results.push(correct);
     save();
 
-    // 日→英の答え合わせ後に英単語の発音を再生(発音復習)
+    // ★v13バグ2: 1問ごとに⭕❌の即時フィードバックを表示（不正解時は正しい答えも）
+    const quizEl = document.querySelector('.vt-quiz');
+    if (quizEl) {
+      const old = quizEl.querySelector('.vt-answer-feedback');
+      if (old) old.remove();
+      const fb = document.createElement('div');
+      fb.className = 'vt-answer-feedback ' + (correct ? 'correct' : 'wrong');
+      fb.style.cssText = 'margin-top:18px; padding:14px 18px; border-radius:12px; font-size:15px; text-align:left; display:flex; gap:12px; align-items:flex-start; max-width:520px; margin-left:auto; margin-right:auto; background:' + (correct ? 'var(--leaf-soft)' : '#f9e3da') + '; border-left:4px solid ' + (correct ? 'var(--leaf)' : 'var(--accent)') + ';';
+      if (correct) {
+        fb.innerHTML = '<span style="font-size:26px; line-height:1">⭕</span>'
+          + '<div><div style="font-weight:700; font-size:16px; color:var(--leaf)">正解!</div></div>';
+      } else {
+        const ansLabel = dir === 'e2j' ? '正しい意味' : '正しい英単語';
+        fb.innerHTML = '<span style="font-size:26px; line-height:1">❌</span>'
+          + '<div><div style="font-weight:700; font-size:16px; color:var(--accent)">不正解</div>'
+          + '<div style="color:var(--ink-soft); font-size:14px; margin-top:4px">' + ansLabel + ': <strong>' + escapeHtml(correctText) + '</strong></div></div>';
+      }
+      quizEl.appendChild(fb);
+    }
+
     if (dir === 'j2e') {
       setTimeout(() => speak(word.term, null), 400);
     }
 
-    setTimeout(() => { currentQuiz.idx++; renderQuizCard(); }, correct ? 1100 : 1700);
+    // 正解は1.3秒、不正解は正しい答えを読む余裕をもって2.4秒で次へ
+    setTimeout(() => { currentQuiz.idx++; renderQuizCard(); }, correct ? 1300 : 2400);
   }
-
   function handleWordCompletion(word, bothCorrect) {
     const isBox = currentQuiz.mode === 'box';
     const isStatusTest = currentQuiz.mode && currentQuiz.mode.startsWith('status-');

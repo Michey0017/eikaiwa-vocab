@@ -3077,12 +3077,16 @@
       const correct = currentQuiz.results.filter(r => r).length;
 
       const wordSummary = {};
-      currentQuiz.queue.forEach((item, i) => {
-        const wid = item.word.id;
-        if (!wordSummary[wid]) {
-          wordSummary[wid] = { word: item.word, e2j: null, j2e: null };
-        }
-        wordSummary[wid][item.direction] = (currentQuiz.results[i] === undefined ? null : currentQuiz.results[i]);
+const __saved = currentQuiz._savedResults || {};
+      Object.keys(__saved).forEach(wid => {
+        const w = state.words.find(x => x.id === wid) || (currentQuiz.queue.find(it => it.word.id === wid) || {}).word;
+        if (!w) return;
+        const rs = __saved[wid] || [];
+        wordSummary[wid] = {
+          word: w,
+          e2j: rs.length > 0 ? rs.every(x => x === true) : null,
+          j2e: rs.some(x => x === false) ? false : (rs.length > 0 ? true : null)
+        };
       });
       const wordSummaryArr = Object.values(wordSummary);
 

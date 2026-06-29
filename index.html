@@ -3068,6 +3068,7 @@
             const allCorrectThisSession = results.every(r => r);
             handleWordCompletion(w, allCorrectThisSession);
           });
+          currentQuiz._savedResults = JSON.parse(JSON.stringify(currentQuiz.currentWordResults));
           currentQuiz.currentWordResults = {};
           save();
         }
@@ -3086,8 +3087,15 @@
       const wordSummaryArr = Object.values(wordSummary);
 
       // ★v13: 正解した単語・間違えた単語に分ける
-      const ngWords = wordSummaryArr.filter(s => s.e2j === false || s.j2e === false);
-      const okWords = wordSummaryArr.filter(s => s.e2j !== false && s.j2e !== false && (s.e2j !== null || s.j2e !== null));
+      const savedResults = currentQuiz._savedResults || {};
+      const ngWords = wordSummaryArr.filter(s => {
+        const r = savedResults[s.word.id];
+        return Array.isArray(r) && r.some(x => x === false);
+      });
+      const okWords = wordSummaryArr.filter(s => {
+        const r = savedResults[s.word.id];
+        return Array.isArray(r) && r.length > 0 && r.every(x => x === true);
+      });
       const isStatusTest = currentQuiz.mode && currentQuiz.mode.startsWith('status-');
       const isGroupTest = currentQuiz.mode && currentQuiz.mode.startsWith('group-');
       const groupName = isGroupTest ? currentQuiz.mode.slice(6) : '';

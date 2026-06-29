@@ -3081,13 +3081,13 @@
         if (!wordSummary[wid]) {
           wordSummary[wid] = { word: item.word, e2j: null, j2e: null };
         }
-        wordSummary[wid][item.direction] = currentQuiz.results[i];
+        wordSummary[wid][item.direction] = (currentQuiz.results[i] === undefined ? null : currentQuiz.results[i]);
       });
       const wordSummaryArr = Object.values(wordSummary);
 
       // ★v13: 正解した単語・間違えた単語に分ける
       const ngWords = wordSummaryArr.filter(s => s.e2j === false || s.j2e === false);
-      const okWords = wordSummaryArr.filter(s => s.e2j !== false && s.j2e !== false);
+      const okWords = wordSummaryArr.filter(s => s.e2j !== false && s.j2e !== false && (s.e2j !== null || s.j2e !== null));
       const isStatusTest = currentQuiz.mode && currentQuiz.mode.startsWith('status-');
       const isGroupTest = currentQuiz.mode && currentQuiz.mode.startsWith('group-');
       const groupName = isGroupTest ? currentQuiz.mode.slice(6) : '';

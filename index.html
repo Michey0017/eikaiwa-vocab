@@ -3077,29 +3077,19 @@
       const correct = currentQuiz.results.filter(r => r).length;
 
       const wordSummary = {};
-const __saved = currentQuiz._savedResults || {};
-      Object.keys(__saved).forEach(wid => {
-        const w = state.words.find(x => x.id === wid) || (currentQuiz.queue.find(it => it.word.id === wid) || {}).word;
-        if (!w) return;
-        const rs = __saved[wid] || [];
-        wordSummary[wid] = {
-          word: w,
-          e2j: rs.length > 0 ? rs.every(x => x === true) : null,
-          j2e: rs.some(x => x === false) ? false : (rs.length > 0 ? true : null)
-        };
+currentQuiz.queue.forEach((item, i) => {
+        const wid = item.word.id;
+        if (!wordSummary[wid]) {
+          wordSummary[wid] = { word: item.word, e2j: null, j2e: null };
+        }
+        const res = currentQuiz.results[i];
+        wordSummary[wid][item.direction] = (res === undefined ? null : res);
       });
       const wordSummaryArr = Object.values(wordSummary);
 
       // ★v13: 正解した単語・間違えた単語に分ける
-      const savedResults = currentQuiz._savedResults || {};
-      const ngWords = wordSummaryArr.filter(s => {
-        const r = savedResults[s.word.id];
-        return Array.isArray(r) && r.some(x => x === false);
-      });
-      const okWords = wordSummaryArr.filter(s => {
-        const r = savedResults[s.word.id];
-        return Array.isArray(r) && r.length > 0 && r.every(x => x === true);
-      });
+      const ngWords = wordSummaryArr.filter(s => s.e2j === false || s.j2e === false);
+      const okWords = wordSummaryArr.filter(s => (s.e2j === true || s.j2e === true) && s.e2j !== false && s.j2e !== false);
       const isStatusTest = currentQuiz.mode && currentQuiz.mode.startsWith('status-');
       const isGroupTest = currentQuiz.mode && currentQuiz.mode.startsWith('group-');
       const groupName = isGroupTest ? currentQuiz.mode.slice(6) : '';

@@ -2062,7 +2062,7 @@
           <div class="vt-tip box">
             <strong>📕 ガチ仕様:</strong> 間違えた単語はここに自動で集まります。
             <ol>
-              <li>復習で間違えた単語は<strong>Stage 0にリセット</strong>されます</li>
+              <li>復習で間違えた単語は<strong>ここに集まります</strong>(通常の復習スケジュールはそのまま進みます)</li>
               <li>このBOX内のクイズで<strong>2回連続正解</strong>すると、BOXから卒業</li>
               <li>英→日 と 日→英 の両方で間違えなかったら、その回はOK</li>
             </ol>
@@ -3398,19 +3398,16 @@ currentQuiz.queue.forEach((item, i) => {
         word.boxStreak = 0;
       }
     } else {
-      if (bothCorrect) {
-        word.stage = Math.min(3, word.stage + 1);
-        const next = [10*60*1000, 24*60*60*1000, 7*24*60*60*1000][word.stage - 1] || 0;
-        word.nextDue = Date.now() + next;
-      } else {
-        if (!word.inBox) {
-          word.inBox = true;
-          toast(`📕 「${word.term}」を間違えBOXへ`);
-        }
-        word.stage = 0;
+      // 正解・不正解に関わらずステージを進める(追加後→10分→24時間→1週間の3回テストで卒業)
+      if (!bothCorrect && !word.inBox) {
+        // 間違えたら間違えBOXへ(BOXルールは従来通り)
+        word.inBox = true;
         word.boxStreak = 0;
-        word.nextDue = Date.now() + 5 * 60 * 1000;
+        toast(`📕 「${word.term}」を間違えBOXへ`);
       }
+      word.stage = Math.min(3, word.stage + 1);
+      const next = [24*60*60*1000, 7*24*60*60*1000][word.stage - 1] || 0;
+      word.nextDue = Date.now() + next;
     }
   }
 

@@ -1248,7 +1248,7 @@
   <header class="vt-head">
     <div>
       <div class="vt-brand">Vocab <em>Atelier</em></div>
-      <div class="vt-sub">Spaced Repetition · v13</div>
+      <div class="vt-sub">Spaced Repetition · v14</div>
     </div>
     <div class="vt-date" id="vt-date"></div>
   </header>
@@ -2019,6 +2019,7 @@
         </div>
 
         <button class="vt-btn" id="start-quiz" style="width:100%; padding:16px; font-size:16px">⚔️ クイズを始める</button>
+        <button class="vt-btn secondary" id="reset-queue" style="width:100%; margin-top:10px">🧹 復習キューをリセット(単語は消えません)</button>
       </div>
     `;
 
@@ -2044,6 +2045,32 @@
       currentQuiz = makeQuiz(finalDue, 'normal');
       renderQuizCard();
     });
+    document.getElementById('reset-queue').addEventListener('click', resetReviewQueue);
+  }
+
+  // 溜まった復習キューを空にする。変えるのは「今日が期限の単語の nextDue」だけ。
+  // 単語の中身・stage・status・間違えBOXは触らない。
+  // 明日に全部まとめて戻ると再び山になるので、明日から7日間に均等に振り分ける。
+  function resetReviewQueue() {
+    const due = getAllDueWords();
+    if (due.length === 0) return;
+    if (!confirm(`本当にリセットしますか?単語は消えません。\n\n今日の復習 ${due.length}単語 を、明日から7日間に分けて出題し直します。\n(単語・進み具合・間違えBOXはそのまま)`)) return;
+    const DAY = 24*60*60*1000;
+    const tomorrow = new Date();
+    tomorrow.setHours(0, 0, 0, 0);
+    const start = tomorrow.getTime() + DAY;
+    // 不安を先に出題されるよう前に並べる
+    const ordered = [
+      ...due.filter(w => w.status === 'unsure'),
+      ...due.filter(w => w.status !== 'unsure')
+    ];
+    ordered.forEach((w, i) => {
+      w.nextDue = start + Math.floor(i * 7 / ordered.length) * DAY;
+    });
+    save();
+    updateBadges();
+    renderReview();
+    toast(`🧹 復習キューをリセットしました(${due.length}単語を7日間に分散)`);
   }
 
   function renderBox() {

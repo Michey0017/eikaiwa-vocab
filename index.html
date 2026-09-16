@@ -1248,7 +1248,7 @@
   <header class="vt-head">
     <div>
       <div class="vt-brand">Vocab <em>Atelier</em></div>
-      <div class="vt-sub">Spaced Repetition · v14</div>
+      <div class="vt-sub">Spaced Repetition · v15</div>
     </div>
     <div class="vt-date" id="vt-date"></div>
   </header>
@@ -2048,29 +2048,36 @@
     document.getElementById('reset-queue').addEventListener('click', resetReviewQueue);
   }
 
-  // 溜まった復習キューを空にする。変えるのは「今日が期限の単語の nextDue」だけ。
-  // 単語の中身・stage・status・間違えBOXは触らない。
-  // 明日に全部まとめて戻ると再び山になるので、明日から7日間に均等に振り分ける。
+  // 溜まった復習キューを空にする。今日が期限の単語を復習スケジュールから卒業(stage=3)させ、
+  // 二度と復習に出さない。単語の中身・status・間違えBOXは触らない。
   function resetReviewQueue() {
     const due = getAllDueWords();
     if (due.length === 0) return;
-    if (!confirm(`本当にリセットしますか?単語は消えません。\n\n今日の復習 ${due.length}単語 を、明日から7日間に分けて出題し直します。\n(単語・進み具合・間違えBOXはそのまま)`)) return;
-    const DAY = 24*60*60*1000;
-    const tomorrow = new Date();
-    tomorrow.setHours(0, 0, 0, 0);
-    const start = tomorrow.getTime() + DAY;
-    // 不安を先に出題されるよう前に並べる
-    const ordered = [
-      ...due.filter(w => w.status === 'unsure'),
-      ...due.filter(w => w.status !== 'unsure')
-    ];
-    ordered.forEach((w, i) => {
-      w.nextDue = start + Math.floor(i * 7 / ordered.length) * DAY;
-    });
+    if (!confirm(`本当にリセットしますか?単語は消えません。\n\n今日の復習 ${due.length}単語 を、今後の復習に出さないようにします。\n(単語帳・仕訳・間違えBOX・グループ/ステータス別テストはそのまま)`)) return;
+    due.forEach(w => { w.stage = 3; });
     save();
     updateBadges();
     renderReview();
-    toast(`🧹 復習キューをリセットしました(${due.length}単語を7日間に分散)`);
+    toast(`🧹 復習キューをリセットしました(${due.length}単語)`);
+  }
+
+  // v14のリセットで「明日から7日間」に振り分けた単語も復習から外す(v15移行処理)。
+  // v14は nextDue を 2026/9/16〜9/22 の0:00ちょうどに設定しており、通常の復習ではほぼ起きない値なので目印にする。
+  function migrateV14ResetWords() {
+    const from = new Date(2026, 8, 16).getTime();
+    const to = new Date(2026, 8, 23).getTime();
+    let n = 0;
+    state.words.forEach(w => {
+      if (w.stage >= 3 || !(w.nextDue >= from && w.nextDue < to)) return;
+      const d = new Date(w.nextDue);
+      if (d.getHours() || d.getMinutes() || d.getSeconds() || d.getMilliseconds()) return;
+      w.stage = 3;
+      n++;
+    });
+    if (n === 0) return;
+    save();
+    updateBadges();
+    renderReview();
   }
 
   function renderBox() {
@@ -3818,6 +3825,8 @@ currentQuiz.queue.forEach((item, i) => {
   // ★(2)初回読込の完了後に呼ぶ：これ以降だけ自動保存(アップ)を許可する
   function enableCloudSaveAfterLoad() {
     cloudReady = true;
+    // クラウドの最新データを取り込んだ後に行う(古い端末データで上書きしないため)
+    migrateV14ResetWords();
   }
 
   // 手動ボタンに紐付け

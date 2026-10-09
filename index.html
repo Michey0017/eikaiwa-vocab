@@ -1248,7 +1248,7 @@
   <header class="vt-head">
     <div>
       <div class="vt-brand">Vocab <em>Atelier</em></div>
-      <div class="vt-sub">Spaced Repetition · v16</div>
+      <div class="vt-sub">Spaced Repetition · v17</div>
     </div>
     <div class="vt-date" id="vt-date"></div>
   </header>
@@ -1423,6 +1423,7 @@
         });
       }
       if (state.maxQuizSize === undefined) state.maxQuizSize = 50;
+      if (state.maxBoxQuizSize === undefined) state.maxBoxQuizSize = 50;
       if (!state.groupCustomNames) state.groupCustomNames = {};
       if (!state.fillBlankProgress) state.fillBlankProgress = {}; // {id: {correct: N, wrong: N, lastTried: timestamp, status: 'unset/known/unsure'}}
       if (!state.fillBlankData) state.fillBlankData = []; // 問題プール(初回ロード時に設定)
@@ -1958,6 +1959,17 @@
   }
   function getBoxWords() { return state.words.filter(w => w.inBox); }
 
+  // 間違えBOXの出題分だけを取り出す(上限あり)。
+  // 連続正解が少ない=まだ覚えていない単語を先に、同じ連続正解数の中ではランダム。
+  function getBoxQuizWords() {
+    const box = getBoxWords();
+    const maxWords = Math.floor((state.maxBoxQuizSize || 50) / 2);
+    if (box.length <= maxWords) return box;
+    const streak0 = shuffle(box.filter(w => !(w.boxStreak > 0)));
+    const streak1 = shuffle(box.filter(w => w.boxStreak > 0));
+    return [...streak0, ...streak1].slice(0, maxWords);
+  }
+
   function updateBadges() {
     const due = getAllDueWords().length;
     const box = getBoxWords().length;
@@ -2110,10 +2122,42 @@
               <li>英→日 と 日→英 の両方で間違えなかったら、その回はOK</li>
             </ol>
           </div>
+          <div class="vt-quiz-config">
+            <label class="vt-label">出題数の上限</label>
+            <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap">
+              <input type="range" id="box-quiz-size" min="10" max="100" step="10" value="${state.maxBoxQuizSize || 50}" style="flex:1; min-width:180px">
+              <div style="font-family:'Fraunces',serif; font-size:24px; min-width:80px; text-align:center;">
+                <strong id="box-quiz-size-num">${state.maxBoxQuizSize || 50}</strong><span style="color:var(--ink-mute); font-size:14px">問</span>
+              </div>
+            </div>
+            <div style="font-size:12px; color:var(--ink-mute); margin-top:8px">
+              英→日と日→英の2問セットなので、単語数は半分(最大${Math.floor((state.maxBoxQuizSize||50)/2)}単語)
+            </div>
+          </div>
+          <div style="background:var(--paper-2); border-radius:10px; padding:14px; margin:16px 0; font-size:13px">
+            📊 <strong>今回の出題:</strong> <span id="box-quiz-summary"></span>
+          </div>
           <button class="vt-btn crimson" id="start-box-quiz" style="margin-bottom:20px">⚔️ 間違えBOXのクイズを始める</button>
           <div class="vt-word-list" id="box-list"></div>
         </div>
       `;
+
+      const boxSlider = document.getElementById('box-quiz-size');
+      const boxNum = document.getElementById('box-quiz-size-num');
+      const boxSummary = document.getElementById('box-quiz-summary');
+      const updateBoxSummary = () => {
+        const picked = getBoxQuizWords().length;
+        const rest = box.length - picked;
+        boxSummary.innerHTML = `${picked * 2}問(${picked}単語)`
+          + (rest > 0 ? `<br><span style="color:var(--ink-mute); font-size:12px">※ 上限により${rest}単語が次回に持ち越し</span>` : '');
+      };
+      updateBoxSummary();
+      boxSlider.addEventListener('input', (e) => {
+        state.maxBoxQuizSize = parseInt(e.target.value);
+        boxNum.textContent = state.maxBoxQuizSize;
+        updateBoxSummary();
+      });
+      boxSlider.addEventListener('change', () => save());
       const list = document.getElementById('box-list');
       box.forEach(w => {
         const div = document.createElement('div');
@@ -2133,7 +2177,7 @@
         list.appendChild(div);
       });
       document.getElementById('start-box-quiz').addEventListener('click', () => {
-        currentQuiz = makeQuiz(box, 'box');
+        currentQuiz = makeQuiz(getBoxQuizWords(), 'box');
         renderQuizCard();
       });
       return;

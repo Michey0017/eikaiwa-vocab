@@ -1248,7 +1248,7 @@
   <header class="vt-head">
     <div>
       <div class="vt-brand">Vocab <em>Atelier</em></div>
-      <div class="vt-sub">Spaced Repetition · v18</div>
+      <div class="vt-sub">Spaced Repetition · v19</div>
     </div>
     <div class="vt-date" id="vt-date"></div>
   </header>
@@ -1432,6 +1432,12 @@
   function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
   load();
 
+  // 画面を切り替えたらページの先頭へ。
+  // ※単語リストが数千pxあるため、下にスクロールしたまま切り替わると「戻っていない」ように見える。
+  function scrollToTop() {
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }
+
   function toast(msg) {
     const t = document.getElementById('toast');
     t.textContent = msg;
@@ -1543,6 +1549,7 @@
       if (t.dataset.tab === 'box') renderBox();
       if (t.dataset.tab === 'groups') renderGroups();
       if (t.dataset.tab === 'fillblank') renderFillBlank();
+      scrollToTop();
     });
   });
 
@@ -1612,6 +1619,7 @@
       document.querySelectorAll('.vt-panel').forEach(x => x.classList.remove('active'));
       document.querySelector('[data-tab="review"]').classList.add('active');
       document.querySelector('[data-panel="review"]').classList.add('active');
+      scrollToTop();
       renderQuizCard();
     });
   });
@@ -2060,6 +2068,7 @@
     document.getElementById('start-quiz').addEventListener('click', () => {
       const finalDue = getDueWords();
       currentQuiz = makeQuiz(finalDue, 'normal');
+      scrollToTop();
       renderQuizCard();
     });
     document.getElementById('reset-queue').addEventListener('click', resetReviewQueue);
@@ -2179,6 +2188,7 @@
       });
       document.getElementById('start-box-quiz').addEventListener('click', () => {
         currentQuiz = makeQuiz(getBoxQuizWords(), 'box');
+        scrollToTop();
         renderQuizCard();
       });
       return;
@@ -2470,6 +2480,7 @@
     document.querySelectorAll('.vt-panel').forEach(x => x.classList.remove('active'));
     document.querySelector('[data-tab="review"]').classList.add('active');
     document.querySelector('[data-panel="review"]').classList.add('active');
+    scrollToTop();
     renderQuizCard();
   }
 
@@ -3101,6 +3112,7 @@
       document.querySelectorAll('.vt-panel').forEach(x => x.classList.remove('active'));
       document.querySelector('[data-tab="review"]').classList.add('active');
       document.querySelector('[data-panel="review"]').classList.add('active');
+      scrollToTop();
       renderQuizCard();
     });
   }
@@ -3322,6 +3334,7 @@ currentQuiz.queue.forEach((item, i) => {
       if (restartBtn) {
         restartBtn.addEventListener('click', () => {
           currentQuiz = null;
+          scrollToTop();
           if (isBox) {
             document.querySelectorAll('.vt-tab').forEach(x => x.classList.remove('active'));
             document.querySelectorAll('.vt-panel').forEach(x => x.classList.remove('active'));

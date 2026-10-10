@@ -1248,7 +1248,7 @@
   <header class="vt-head">
     <div>
       <div class="vt-brand">Vocab <em>Atelier</em></div>
-      <div class="vt-sub">Spaced Repetition · v17</div>
+      <div class="vt-sub">Spaced Repetition · v18</div>
     </div>
     <div class="vt-date" id="vt-date"></div>
   </header>
@@ -1928,9 +1928,7 @@
   }
 
   function getDueWords() {
-    const now = Date.now();
-    // 「覚えた」は完全除外
-    const allDue = state.words.filter(w => w.stage < 3 && w.nextDue <= now && w.status !== 'known');
+    const allDue = getAllDueWords();
 
     // 上限を取得(英→日+日→英で2倍になるので、単語数の上限は半分)
     const maxQuestions = state.maxQuizSize || 50;
@@ -1941,21 +1939,23 @@
     // 不安を最優先
     const unsure = allDue.filter(w => w.status === 'unsure');
     const unset = allDue.filter(w => w.status === 'unset');
+    // 「覚えた」も3回テストが終わるまでは出題するが、優先度は一番低い
+    const known = allDue.filter(w => w.status === 'known');
 
     // 不安が上限を超える場合、古い順(addedAtが古いもの優先)
     if (unsure.length >= maxWords) {
       return [...unsure].sort((a,b) => a.addedAt - b.addedAt).slice(0, maxWords);
     }
 
-    // 不安全部 + 未仕訳でランダムに埋める
-    const remaining = maxWords - unsure.length;
-    const unsetShuffled = shuffle([...unset]).slice(0, remaining);
-    return [...unsure, ...unsetShuffled];
+    // 不安全部 → 未仕訳 → 覚えた の順にランダムで埋める
+    const rest = [...shuffle([...unset]), ...shuffle([...known])].slice(0, maxWords - unsure.length);
+    return [...unsure, ...rest];
   }
   // 今日の対象になりうる単語の総数(バッジ表示用、上限適用前)
+  // ※卒業(stage3)した単語だけが対象外。🟢覚えたも3回テストが終わるまでは復習に出す。
   function getAllDueWords() {
     const now = Date.now();
-    return state.words.filter(w => w.stage < 3 && w.nextDue <= now && w.status !== 'known');
+    return state.words.filter(w => w.stage < 3 && w.nextDue <= now);
   }
   function getBoxWords() { return state.words.filter(w => w.inBox); }
 
@@ -1985,7 +1985,7 @@
     const container = document.getElementById('review-content');
     const allDue = getAllDueWords();
     if (allDue.length === 0) {
-      const allPending = state.words.filter(w => w.stage < 3 && w.status !== 'known');
+      const allPending = state.words.filter(w => w.stage < 3);
       const next = allPending.sort((a,b) => a.nextDue - b.nextDue)[0];
       container.innerHTML = `
         <div class="vt-card">
@@ -2005,16 +2005,14 @@
     }
 
     // クイズ開始前のサマリー画面
-    const due = getDueWords();
     const unsureCount = allDue.filter(w => w.status === 'unsure').length;
     const unsetCount = allDue.filter(w => w.status === 'unset').length;
-    const willAsk = due.length;
-    const willSkip = allDue.length - willAsk;
+    const knownCount = allDue.filter(w => w.status === 'known').length;
 
     container.innerHTML = `
       <div class="vt-card">
         <h2>今日の復習</h2>
-        <p class="lead">復習対象は <strong style="color:var(--accent)">${allDue.length}単語</strong>(🟡不安 ${unsureCount} / ⚪未仕訳 ${unsetCount})</p>
+        <p class="lead">復習対象は <strong style="color:var(--accent)">${allDue.length}単語</strong>(🟡不安 ${unsureCount} / ⚪未仕訳 ${unsetCount} / 🟢覚えた ${knownCount})</p>
 
         <div class="vt-quiz-config">
           <label class="vt-label">出題数の上限</label>
@@ -2030,8 +2028,8 @@
         </div>
 
         <div style="background:var(--paper-2); border-radius:10px; padding:14px; margin:16px 0; font-size:13px">
-          📊 <strong>今回の出題:</strong> <span id="quiz-summary">${willAsk}問(${Math.floor(willAsk/2)}単語)</span>
-          ${willSkip > 0 ? `<br><span style="color:var(--ink-mute); font-size:12px">※ 上限により${Math.floor(willSkip/2)}単語が次回に持ち越し</span>` : ''}
+          📊 <strong>今回の出題:</strong> <span id="quiz-summary"></span>
+          <span id="quiz-carryover"></span>
         </div>
 
         <button class="vt-btn" id="start-quiz" style="width:100%; padding:16px; font-size:16px">⚔️ クイズを始める</button>
@@ -2042,18 +2040,21 @@
     const slider = document.getElementById('quiz-size');
     const num = document.getElementById('quiz-size-num');
     const summary = document.getElementById('quiz-summary');
+    const carryover = document.getElementById('quiz-carryover');
+    // スライダーを動かすたびに出題数を出し直す(spanを作り直さないので何度動かしても壊れない)
+    const updateSummary = () => {
+      const picked = getDueWords().length;
+      const rest = allDue.length - picked;
+      summary.textContent = `${picked * 2}問(${picked}単語)`;
+      carryover.innerHTML = rest > 0
+        ? `<br><span style="color:var(--ink-mute); font-size:12px">※ 上限により${rest}単語が次回に持ち越し</span>`
+        : '';
+    };
+    updateSummary();
     slider.addEventListener('input', (e) => {
-      const v = parseInt(e.target.value);
-      state.maxQuizSize = v;
-      num.textContent = v;
-      // サマリー再計算
-      const newDue = getDueWords();
-      summary.textContent = `${newDue.length * 2 / 2}問(${newDue.length}単語) ※2問セット`;
-      summary.parentElement.innerHTML = summary.parentElement.innerHTML.replace(
-        /📊 <strong>今回の出題:.*$/s,
-        `📊 <strong>今回の出題:</strong> ${newDue.length * 2}問(${newDue.length}単語)
-         ${(allDue.length - newDue.length) > 0 ? `<br><span style="color:var(--ink-mute); font-size:12px">※ 上限により${allDue.length - newDue.length}単語が次回に持ち越し</span>` : ''}`
-      );
+      state.maxQuizSize = parseInt(e.target.value);
+      num.textContent = state.maxQuizSize;
+      updateSummary();
     });
     slider.addEventListener('change', () => save());
     document.getElementById('start-quiz').addEventListener('click', () => {

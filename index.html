@@ -323,6 +323,21 @@
   .vt-word .stage.due { background: var(--accent); color: white; }
   .vt-word .stage.done { background: var(--paper-2); color: var(--ink-mute); }
   .vt-word .stage.box { background: var(--crimson-soft); color: var(--crimson); }
+  .vt-box-remove {
+    display: block;
+    margin-top: 6px;
+    font-family: inherit;
+    font-size: 10px;
+    font-weight: 600;
+    white-space: nowrap;
+    padding: 4px 8px;
+    border-radius: 12px;
+    border: 1px solid var(--crimson-soft);
+    background: transparent;
+    color: var(--ink-mute);
+    cursor: pointer;
+  }
+  .vt-box-remove:hover { border-color: var(--crimson); color: var(--crimson); }
   .vt-word .box-streak {
     font-size: 10px;
     color: var(--crimson);
@@ -1248,7 +1263,7 @@
   <header class="vt-head">
     <div>
       <div class="vt-brand">Vocab <em>Atelier</em></div>
-      <div class="vt-sub">Spaced Repetition · v19</div>
+      <div class="vt-sub">Spaced Repetition · v20</div>
     </div>
     <div class="vt-date" id="vt-date"></div>
   </header>
@@ -1967,6 +1982,19 @@
   }
   function getBoxWords() { return state.words.filter(w => w.inBox); }
 
+  // 間違えBOXから1語だけ外す。単語自体は消さず、通常の復習スケジュールもそのまま。
+  function removeFromBox(wordId) {
+    const w = state.words.find(x => x.id === wordId);
+    if (!w) return;
+    if (!confirm(`「${w.term}」を間違えBOXから外しますか?\n\n単語は消えません。通常の復習には今まで通り出ます。`)) return;
+    w.inBox = false;
+    w.boxStreak = 0;
+    save();
+    updateBadges();
+    renderBox();
+    toast(`「${w.term}」をBOXから外しました`);
+  }
+
   // 間違えBOXの出題分だけを取り出す(上限あり)。
   // 連続正解が少ない=まだ覚えていない単語を先に、同じ連続正解数の中ではランダム。
   function getBoxQuizWords() {
@@ -2181,9 +2209,13 @@
             <span class="box-streak">連続正解: ${w.boxStreak || 0} / 2</span>
           </div>
           <div class="speak-cell"></div>
-          <div class="stage box">BOX</div>
+          <div>
+            <div class="stage box">BOX</div>
+            <button class="vt-box-remove" data-id="${w.id}" title="この単語をBOXから外す">BOXから外す</button>
+          </div>
         `;
         div.querySelector('.speak-cell').appendChild(makeSpeakButton(w.term));
+        div.querySelector('.vt-box-remove').addEventListener('click', () => removeFromBox(w.id));
         list.appendChild(div);
       });
       document.getElementById('start-box-quiz').addEventListener('click', () => {
@@ -3422,6 +3454,29 @@ currentQuiz.queue.forEach((item, i) => {
         optsEl.appendChild(btn);
       });
     }
+
+    // 途中でやめられるようにする。
+    // ※これが無いと、クイズを中断したあとタブを押してもクイズが再開され、一覧に戻れなかった。
+    const card = container.querySelector('.vt-card');
+    if (card) {
+      const quitBtn = document.createElement('button');
+      quitBtn.className = 'vt-btn secondary';
+      quitBtn.id = 'quiz-quit';
+      quitBtn.textContent = '⏸ 中断して一覧に戻る';
+      quitBtn.style.cssText = 'display:block; margin:20px auto 4px';
+      quitBtn.addEventListener('click', quitQuiz);
+      card.appendChild(quitBtn);
+    }
+  }
+
+  // クイズを中断して、そのタブの最初の画面に戻る。答えた分の結果は保存済み。
+  function quitQuiz() {
+    const mode = currentQuiz ? currentQuiz.mode : '';
+    currentQuiz = null;
+    updateBadges();
+    scrollToTop();
+    if (mode === 'box') renderBox();
+    else renderReview();
   }
 
   function answerQuiz(word, dir, chosen, btn, correct) {

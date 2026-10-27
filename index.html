@@ -1263,7 +1263,7 @@
   <header class="vt-head">
     <div>
       <div class="vt-brand">Vocab <em>Atelier</em></div>
-      <div class="vt-sub">Spaced Repetition · v20</div>
+      <div class="vt-sub">Spaced Repetition · v21</div>
     </div>
     <div class="vt-date" id="vt-date"></div>
   </header>
@@ -3222,6 +3222,8 @@ currentQuiz.queue.forEach((item, i) => {
       // ★v13: 正解した単語・間違えた単語に分ける
       const ngWords = wordSummaryArr.filter(s => s.e2j === false || s.j2e === false);
       const okWords = wordSummaryArr.filter(s => (s.e2j === true || s.j2e === true) && s.e2j !== false && s.j2e !== false);
+      // どちらにも入らなかった単語(記録が取れていない等)。ここに入れないと一覧から消えてしまう。
+      const otherWords = wordSummaryArr.filter(s => !ngWords.includes(s) && !okWords.includes(s));
       const isStatusTest = currentQuiz.mode && currentQuiz.mode.startsWith('status-');
       const isGroupTest = currentQuiz.mode && currentQuiz.mode.startsWith('group-');
       const groupName = isGroupTest ? currentQuiz.mode.slice(6) : '';
@@ -3291,11 +3293,33 @@ currentQuiz.queue.forEach((item, i) => {
                 <button class="vt-status-btn ${w.status === 'known' ? 'active known' : ''}" data-status="known" data-id="${w.id}">🟢</button>
                 <button class="vt-status-btn ${w.status === 'unsure' ? 'active unsure' : ''}" data-status="unsure" data-id="${w.id}">🟡</button>
                 <button class="vt-status-btn ${(!w.status || w.status === 'unset') ? 'active unset' : ''}" data-status="unset" data-id="${w.id}">⚪</button>
+                ${w.inBox ? `<button class="vt-box-remove" data-boxid="${w.id}" title="この単語を間違えBOXから外す">BOXから外す</button>` : ''}
               </div>
               <button class="vt-delete-btn-after" data-id="${w.id}" data-term="${escapeHtml(w.term)}" title="この単語を削除">🗑️</button>
             `;
-            div.querySelector('.after-speak-cell').appendChild(makeSpeakButton(w.term));
+            const speakCell = div.querySelector('.after-speak-cell');
+            if (speakCell) speakCell.appendChild(makeSpeakButton(w.term));
+            const boxBtn = div.querySelector('.vt-box-remove');
+            if (boxBtn) {
+              boxBtn.addEventListener('click', () => {
+                const target = state.words.find(x => x.id === w.id);
+                if (!target) return;
+                target.inBox = false;
+                target.boxStreak = 0;
+                save();
+                updateBadges();
+                boxBtn.textContent = 'BOXから外した';
+                boxBtn.disabled = true;
+                boxBtn.style.opacity = '0.5';
+                toast(`「${target.term}」をBOXから外しました`);
+              });
+            }
             afterList.appendChild(div);
+          };
+          // 1語でエラーが出ても、残りの単語は表示する
+          const renderRowSafely = (s) => {
+            try { renderAfterWordRow(s); }
+            catch (e) { console.error('結果の行を表示できませんでした:', s && s.word && s.word.term, e); }
           };
 
           if (ngWords.length > 0) {
@@ -3303,14 +3327,28 @@ currentQuiz.queue.forEach((item, i) => {
             t.style.cssText = "font-family:'Fraunces',serif; font-weight:500; font-size:16px; margin:18px 0 10px; color:var(--accent)";
             t.innerHTML = `❌ 間違えた単語 <span style="font-family:'Inter Tight',sans-serif; font-size:12px; padding:2px 8px; border-radius:10px; font-weight:600; background:#f9e3da; color:var(--accent)">${ngWords.length}</span>`;
             afterList.appendChild(t);
-            ngWords.forEach(renderAfterWordRow);
+            ngWords.forEach(renderRowSafely);
           }
           if (okWords.length > 0) {
             const t = document.createElement('div');
             t.style.cssText = "font-family:'Fraunces',serif; font-weight:500; font-size:16px; margin:18px 0 10px; color:var(--leaf)";
             t.innerHTML = `⭕ 正解した単語 <span style="font-family:'Inter Tight',sans-serif; font-size:12px; padding:2px 8px; border-radius:10px; font-weight:600; background:var(--leaf-soft); color:var(--leaf)">${okWords.length}</span>`;
             afterList.appendChild(t);
-            okWords.forEach(renderAfterWordRow);
+            okWords.forEach(renderRowSafely);
+          }
+          if (otherWords.length > 0) {
+            const t = document.createElement('div');
+            t.style.cssText = "font-family:'Fraunces',serif; font-weight:500; font-size:16px; margin:18px 0 10px; color:var(--ink-mute)";
+            t.innerHTML = `— 記録なし <span style="font-family:'Inter Tight',sans-serif; font-size:12px; padding:2px 8px; border-radius:10px; font-weight:600; background:var(--paper-2); color:var(--ink-mute)">${otherWords.length}</span>`;
+            afterList.appendChild(t);
+            otherWords.forEach(renderRowSafely);
+          }
+          // 1行も出せなかったときに、黙って空にしない
+          if (!afterList.querySelector('.vt-after-word')) {
+            const note = document.createElement('p');
+            note.className = 'lead';
+            note.textContent = `結果の一覧を表示できませんでした(出題 ${wordSummaryArr.length}単語)。単語帳タブから仕訳できます。`;
+            afterList.appendChild(note);
           }
 
           afterList.querySelectorAll('.vt-status-btn').forEach(btn => {
@@ -3455,6 +3493,11 @@ currentQuiz.queue.forEach((item, i) => {
       });
     }
 
+    // 回答済みの問題を作り直した場合(タブ切替など)は、押せないようにしておく
+    if (currentQuiz.results.length > currentQuiz.idx) {
+      container.querySelectorAll('.vt-option').forEach(b => { b.disabled = true; });
+    }
+
     // 途中でやめられるようにする。
     // ※これが無いと、クイズを中断したあとタブを押してもクイズが再開され、一覧に戻れなかった。
     const card = container.querySelector('.vt-card');
@@ -3480,6 +3523,9 @@ currentQuiz.queue.forEach((item, i) => {
   }
 
   function answerQuiz(word, dir, chosen, btn, correct) {
+    // 同じ問題に2回答えると、結果と問題の対応がずれて一覧が正しく出せなくなる。
+    // (答えた直後にタブを切り替えると画面が作り直され、もう一度押せてしまう)
+    if (currentQuiz.results.length !== currentQuiz.idx) return;
     const allBtns = document.querySelectorAll('.vt-option');
     const correctText = dir === 'e2j' ? word.meaning : word.term;
     allBtns.forEach(b => {
